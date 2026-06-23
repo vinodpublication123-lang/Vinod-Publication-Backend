@@ -1,0 +1,42 @@
+{
+  "name": "vinverse-publication-backend",
+  "version": "0.1.0",
+  "description": "VINVERSE Publication and Ecommerce backend foundation.",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "keywords": [
+    "vinverse",
+    "publication",
+    "ecommerce",
+    "express",
+    "prisma",
+    "postgresql"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@prisma/client": "^6.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "prisma": "^6.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
