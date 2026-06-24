@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/uploads/book-cover"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: text
+      key: file
+      value: ""
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('401 Unauthorized — no token', function() { pm.response.to.have.status(401); });
+      pm.test('success=false', function() { pm.expect(pm.response.json().success).to.be.false; });
+    language: text/javascript
+order: 1000

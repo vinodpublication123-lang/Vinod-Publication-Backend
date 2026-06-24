@@ -1,0 +1,36 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Test Customer",
+      "email": "PLACEHOLDER",
+      "password": "Password@123",
+      "phone": "9876543210"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      var email = 'p4_' + Date.now() + '@vinverse.test';
+      pm.environment.set('customerEmail', email);
+      pm.environment.set('customerPassword', 'Password@123');
+      var body = JSON.parse(pm.request.body.raw);
+      body.email = email;
+      pm.request.body.raw = JSON.stringify(body);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var d = pm.response.json().data;
+      pm.environment.set('accessToken', d.accessToken);
+      pm.environment.set('refreshToken', d.refreshToken);
+      pm.environment.set('userId', d.user.id);
+      pm.test('accessToken captured', function() { pm.expect(d.accessToken).to.be.a('string').and.not.empty; });
+      pm.test('userId captured', function() { pm.expect(d.user.id).to.be.a('string').and.not.empty; });
+    language: text/javascript
+order: 1000

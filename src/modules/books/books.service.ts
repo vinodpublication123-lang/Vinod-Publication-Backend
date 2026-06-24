@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { AppError } from "../../lib/errors";
 import { prisma } from "../../lib/prisma";
 import { UpdateBookInput, BookQuery } from "./books.schemas";
+import { sanitizeRichText } from "../../lib/sanitize";
 
 export async function listBooks(query: BookQuery) {
   const { page, limit, search, sort, order } = query;
@@ -72,4 +73,52 @@ export async function deleteBook(id: string) {
 
   // Deleting the product cascades the book (onDelete: Cascade on Book)
   await prisma.product.delete({ where: { id: existing.productId } });
+}
+
+// ── Public: get book by slug (store) ─────────────────────────────────────────
+
+export async function getBookBySlug(slug: string) {
+  const book = await prisma.book.findUnique({
+    where: { slug },
+    include: {
+      author: { select: { id: true, name: true, slug: true, avatarUrl: true, shortBio: true } },
+      product: {
+        select: {
+          id: true, name: true, slug: true, price: true, salePrice: true,
+          status: true, primaryImage: true, galleryImages: true,
+          globalStock: true, trackStock: true, outOfStockBehavior: true,
+        },
+      },
+    },
+  });
+  if (!book) throw new AppError("Book not found", 404);
+  if (book.product.status !== "ACTIVE") throw new AppError("Book not found", 404);
+  return {
+    ...book,
+    shortDescription: book.shortDescription,
+    fullDescription: book.fullDescription ? sanitizeRichText(book.fullDescription) : null,
+  };
+}
+
+// ── Public: QR endpoint ───────────────────────────────────────────────────────
+
+export async function getBookQr(slug: string) {
+  const book = await prisma.book.findUnique({
+    where: { slug },
+    select: {
+      title: true,
+      qrEnabled: true,
+      qrSongTitle: true,
+      qrSongUrl: true,
+      author: { select: { name: true } },
+    },
+  });
+  if (!book) throw new AppError("Book not found", 404);
+  return {
+    title: book.title,
+    author: book.author.name,
+    qrEnabled: book.qrEnabled,
+    songTitle: book.qrEnabled ? book.qrSongTitle : null,
+    songUrl: book.qrEnabled ? book.qrSongUrl : null,
+  };
 }

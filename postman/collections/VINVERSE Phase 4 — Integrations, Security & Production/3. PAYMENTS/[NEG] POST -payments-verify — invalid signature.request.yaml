@@ -1,0 +1,27 @@
+$kind: http-request
+name: "[NEG] POST /payments/verify — invalid signature"
+url: "{{baseUrl}}/payments/verify"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "orderId": "{{orderId}}",
+      "razorpayOrderId": "order_FAKE123456",
+      "razorpayPaymentId": "pay_FAKE123456",
+      "razorpaySignature": "TAMPERED_INVALID_SIGNATURE_XYZ"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('orderId was generated', function() { pm.expect(pm.environment.get('orderId'), 'orderId not set — run 0.SETUP first').to.be.ok; });
+      pm.test('400 invalid signature', function() { pm.response.to.have.status(400); });
+      pm.test('success=false', function() { pm.expect(pm.response.json().success).to.be.false; });
+    language: text/javascript
+order: 2000

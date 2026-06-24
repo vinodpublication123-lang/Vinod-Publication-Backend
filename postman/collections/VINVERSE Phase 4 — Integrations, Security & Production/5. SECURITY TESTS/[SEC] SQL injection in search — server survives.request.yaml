@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/products?search=' OR 1=1--"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  search: "' OR 1=1--"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Server did not crash', function() { pm.expect(pm.response.code).to.be.oneOf([200,400]); });
+      pm.test('Valid JSON returned', function() { pm.response.json(); });
+    language: text/javascript
+order: 5000

@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/me"
+method: GET
+headers:
+  Authorization: Bearer {{supabase_service_role_api_key_0zmi}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('401 tampered JWT rejected', function() { pm.response.to.have.status(401); });
+      pm.test('success=false', function() { pm.expect(pm.response.json().success).to.be.false; });
+    language: text/javascript
+order: 3000

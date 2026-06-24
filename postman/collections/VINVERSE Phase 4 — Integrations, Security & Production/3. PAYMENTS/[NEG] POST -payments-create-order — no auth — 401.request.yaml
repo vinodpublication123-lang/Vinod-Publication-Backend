@@ -1,0 +1,17 @@
+$kind: http-request
+name: "[NEG] POST /payments/create-order — no auth — 401"
+url: "{{baseUrl}}/payments/create-order"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "orderId": "{{orderId}}"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('401 Unauthorized', function() { pm.response.to.have.status(401); });
+    language: text/javascript
+order: 3000

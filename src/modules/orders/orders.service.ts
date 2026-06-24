@@ -7,6 +7,8 @@ import {
   AdminOrderQuery,
   UpdateOrderStatusInput,
 } from "./orders.schemas";
+import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "../email/email.service";
+import { auditLog } from "../audit/audit.service";
 
 // ── Allowed order status transitions ─────────────────────────────────────────
 
@@ -207,10 +209,35 @@ export async function checkout(userId: string, input: CheckoutInput) {
     });
 
     // Return full order
-    return tx.order.findUnique({
+    const fullOrder = await tx.order.findUnique({
       where: { id: order.id },
-      include: orderInclude,
+      include: {
+        ...orderInclude,
+        user: { select: { name: true, email: true } },
+      },
     });
+
+    // Fire-and-forget emails (outside transaction so they don't block rollback)
+    if (fullOrder) {
+      const emailItems = fullOrder.items.map((i) => ({
+        productName: i.productName,
+        quantity: i.quantity,
+        unitPrice: Number(i.unitPrice),
+      }));
+      sendOrderConfirmationEmail(fullOrder.user.email, {
+        name: fullOrder.user.name,
+        orderNumber: fullOrder.orderNumber,
+        total: Number(fullOrder.total),
+        items: emailItems,
+      });
+      sendAdminNewOrderEmail(
+        fullOrder.orderNumber,
+        fullOrder.user.name,
+        Number(fullOrder.total)
+      );
+    }
+
+    return fullOrder;
   });
 }
 
@@ -393,6 +420,15 @@ export async function updateOrderStatus(
     where: { id: orderId },
     data: { status: input.status },
     include: orderInclude,
+  }).then((updated) => {
+    auditLog({
+      actorId: undefined,
+      action: "ORDER_STATUS_CHANGE",
+      entityType: "Order",
+      entityId: orderId,
+      metadata: { from: order.status, to: input.status },
+    });
+    return updated;
   });
 }
 

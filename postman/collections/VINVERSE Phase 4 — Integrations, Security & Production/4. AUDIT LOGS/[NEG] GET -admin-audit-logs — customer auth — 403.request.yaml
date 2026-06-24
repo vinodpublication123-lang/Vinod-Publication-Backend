@@ -1,0 +1,15 @@
+$kind: http-request
+name: "[NEG] GET /admin/audit-logs — customer auth — 403"
+url: "{{baseUrl}}/admin/audit-logs"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('403 Forbidden — customer cannot access audit logs', function() { pm.response.to.have.status(403); });
+    language: text/javascript
+order: 6000

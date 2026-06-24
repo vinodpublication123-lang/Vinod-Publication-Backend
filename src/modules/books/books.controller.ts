@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { successResponse } from "../../lib/response";
-import { listBooks, getBookById, updateBook, deleteBook } from "./books.service";
+import { listBooks, getBookById, updateBook, deleteBook, getBookBySlug, getBookQr } from "./books.service";
 
 export async function getBooks(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -36,4 +36,18 @@ export async function removeBook(req: Request, res: Response, next: NextFunction
   } catch (err) {
     next(err);
   }
+}
+
+export async function getBookBySlugPublic(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const data = await getBookBySlug(String(req.params.slug));
+    successResponse(res, data);
+  } catch (err) { next(err); }
+}
+
+export async function getBookQrPublic(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const data = await getBookQr(String(req.params.slug));
+    successResponse(res, data);
+  } catch (err) { next(err); }
 }

@@ -1,0 +1,56 @@
+$kind: http-request
+url: "{{baseUrl}}/products"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Phase 4 Test Book",
+      "sku": "PLACEHOLDER",
+      "category": "BOOK",
+      "price": 499,
+      "status": "ACTIVE",
+      "globalStock": 50,
+      "trackStock": true,
+      "book": {
+        "title": "Phase 4 Test Book Title",
+        "genre": "Fiction",
+        "shortDescription": "Automated test book for Phase 4",
+        "qrEnabled": true,
+        "qrSongTitle": "Test Song",
+        "qrSongUrl": "https://example.com/test-song.mp3",
+        "author": {
+          "name": "Auto Author",
+          "shortBio": "Generated for Phase 4 testing"
+        }
+      }
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: beforeRequest
+    code: |-
+      var sku = 'BOOK-P4-' + Date.now();
+      var body = JSON.parse(pm.request.body.raw);
+      body.sku = sku;
+      body.name = 'Phase 4 Test Book ' + Date.now();
+      body.book.title = 'P4 Book ' + Date.now();
+      pm.request.body.raw = JSON.stringify(body);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var d = pm.response.json().data;
+      pm.environment.set('productId', d.id);
+      pm.environment.set('bookId', d.book ? d.book.id : '');
+      pm.environment.set('bookSlug', d.book ? d.book.slug : '');
+      pm.test('productId captured', function() { pm.expect(d.id).to.be.a('string').and.not.empty; });
+      pm.test('bookSlug captured', function() { pm.expect(pm.environment.get('bookSlug')).to.be.a('string').and.not.empty; });
+      pm.test('book is linked', function() { pm.expect(d.book).to.exist; });
+    language: text/javascript
+order: 4000

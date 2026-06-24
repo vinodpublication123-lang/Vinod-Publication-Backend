@@ -1,0 +1,79 @@
+name: VINVERSE Phase 4 — Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:4000/api/v1'
+  - key: accessToken
+    description:
+      content: Paste your JWT access token here after login
+      type: text/plain
+    secret: true
+  - key: adminAccessToken
+    secret: true
+  - key: refreshToken
+    value: ''
+    description:
+      content: Paste your JWT refresh token here after login
+      type: text/plain
+  - key: userId
+    value: ''
+    description:
+      content: Your user ID (returned from /auth/me)
+      type: text/plain
+  - key: orderId
+    value: ''
+    description:
+      content: Internal order ID from checkout response
+      type: text/plain
+  - key: razorpayOrderId
+    value: ''
+    description:
+      content: Razorpay order ID returned from /payments/create-order
+      type: text/plain
+  - key: razorpayPaymentId
+    value: ''
+    description:
+      content: Razorpay payment ID from frontend checkout callback
+      type: text/plain
+  - key: razorpaySignature
+    value: ''
+    description:
+      content: HMAC-SHA256 signature from Razorpay frontend callback
+      type: text/plain
+  - key: bookSlug
+    value: ''
+    description:
+      content: Book slug for QR and public store endpoints
+      type: text/plain
+  - key: bookId
+    value: ''
+    description:
+      content: Book ID (cuid) for admin book endpoints
+      type: text/plain
+  - key: productId
+    value: ''
+    description:
+      content: Product ID (cuid)
+      type: text/plain
+  - key: addressId
+    value: ''
+    description:
+      content: Address ID (cuid) for checkout
+      type: text/plain
+  - key: cartItemId
+    value: ''
+    description:
+      content: Cart item ID for cart operations
+      type: text/plain
+  - key: auditActorId
+    value: ''
+    description:
+      content: Admin user ID to filter audit logs by actor
+      type: text/plain
+  - key: _custEmail
+    value: ''
+  - key: customerEmail
+    value: ''
+  - key: customerPassword
+    value: ''
+  - key: orderNumber
+    value: ''

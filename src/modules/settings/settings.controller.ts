@@ -13,7 +13,7 @@ export async function fetchSettings(req: Request, res: Response, next: NextFunct
 
 export async function patchSettings(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const data = await updateSettings(req.body);
+    const data = await updateSettings(req.body, req.user?.sub);
     successResponse(res, data);
   } catch (err) {
     next(err);

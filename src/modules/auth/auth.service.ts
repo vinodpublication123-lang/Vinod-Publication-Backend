@@ -6,6 +6,7 @@ import { AppError } from "../../lib/errors";
 import { prisma } from "../../lib/prisma";
 import { AuthPayload } from "../../middleware/auth";
 import { RegisterInput, LoginInput, RefreshInput } from "./auth.schemas";
+import { sendWelcomeEmail } from "../email/email.service";
 
 function generateAccessToken(payload: Omit<AuthPayload, "type">): string {
   return jwt.sign(
@@ -51,6 +52,9 @@ export async function registerService(input: RegisterInput) {
   await prisma.refreshToken.create({
     data: { tokenHash: hash, userId: user.id, expiresAt: refreshExpiryDate() },
   });
+
+  // Send welcome email (fire-and-forget — never blocks registration response)
+  sendWelcomeEmail(user.email, user.name);
 
   return {
     user: { id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt },

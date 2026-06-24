@@ -1,0 +1,18 @@
+$kind: http-request
+name: "[NEG] POST /payments/create-order — missing orderId — 400"
+url: "{{baseUrl}}/payments/create-order"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{}"
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('400 missing orderId', function() { pm.response.to.have.status(400); });
+    language: text/javascript
+order: 4000

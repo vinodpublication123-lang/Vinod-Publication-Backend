@@ -255,24 +255,26 @@ model Book {
 }
 
 model Order {
-  id            String        @id @default(cuid())
-  orderNumber   String        @unique
-  userId        String
-  user          User          @relation(fields: [userId], references: [id], onDelete: Restrict)
-  addressId     String
-  address       Address       @relation(fields: [addressId], references: [id], onDelete: Restrict)
-  items         OrderItem[]
-  status        OrderStatus   @default(PENDING)
-  paymentStatus PaymentStatus @default(PENDING)
-  tracking      TrackingInfo?
-  subtotal      Decimal       @db.Decimal(10, 2)
-  taxTotal      Decimal       @default(0) @db.Decimal(10, 2)
-  shippingTotal Decimal       @default(0) @db.Decimal(10, 2)
-  discountTotal Decimal       @default(0) @db.Decimal(10, 2)
-  total         Decimal       @db.Decimal(10, 2)
-  placedAt      DateTime      @default(now())
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id               String        @id @default(cuid())
+  orderNumber      String        @unique
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  addressId        String
+  address          Address       @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  items            OrderItem[]
+  status           OrderStatus   @default(PENDING)
+  paymentStatus    PaymentStatus @default(PENDING)
+  payments         Payment[]
+  razorpayOrderId  String?       @unique
+  tracking         TrackingInfo?
+  subtotal         Decimal       @db.Decimal(10, 2)
+  taxTotal         Decimal       @default(0) @db.Decimal(10, 2)
+  shippingTotal    Decimal       @default(0) @db.Decimal(10, 2)
+  discountTotal    Decimal       @default(0) @db.Decimal(10, 2)
+  total            Decimal       @db.Decimal(10, 2)
+  placedAt         DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   @@index([userId])
   @@index([addressId])
@@ -351,4 +353,38 @@ model TrackingInfo {
 
   @@index([status])
   @@map("tracking_info")
+}
+
+model Payment {
+  id                  String        @id @default(cuid())
+  orderId             String
+  order               Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  razorpayOrderId     String        @unique
+  razorpayPaymentId   String?
+  razorpaySignature   String?
+  provider            String        @default("razorpay")
+  amount              Int           // in paise (smallest currency unit)
+  currency            String        @default("INR")
+  verified            Boolean       @default(false)
+  verifiedAt          DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?  // null for system events
+  action      String   // e.g. PRODUCT_CREATE, ORDER_STATUS_CHANGE
+  entityType  String   // e.g. Product, Order, Book
+  entityId    String
+  metadata    Json?    // additional context (no secrets)
+  createdAt   DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@map("audit_logs")
 }

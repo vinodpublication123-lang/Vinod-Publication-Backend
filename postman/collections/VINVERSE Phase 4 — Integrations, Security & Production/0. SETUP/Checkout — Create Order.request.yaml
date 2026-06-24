@@ -1,0 +1,29 @@
+$kind: http-request
+url: "{{baseUrl}}/orders/checkout"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "addressId": "{{addressId}}"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var d = pm.response.json().data;
+      pm.environment.set('orderId', d.id);
+      pm.environment.set('orderNumber', d.orderNumber);
+      pm.test('orderId captured', function() { pm.expect(d.id).to.be.a('string').and.not.empty; });
+      pm.test('orderNumber captured', function() { pm.expect(d.orderNumber).to.match(/^VIN-/); });
+      pm.test('status PENDING', function() { pm.expect(d.status).to.eql('PENDING'); });
+      pm.test('total > 0', function() { pm.expect(Number(d.total)).to.be.gt(0); });
+    language: text/javascript
+order: 6000

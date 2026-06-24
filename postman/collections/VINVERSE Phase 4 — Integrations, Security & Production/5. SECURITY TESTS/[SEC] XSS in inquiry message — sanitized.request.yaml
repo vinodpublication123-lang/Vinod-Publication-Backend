@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/inquiries"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "XSS Test",
+      "email": "xss@autotest.com",
+      "type": "GENERAL",
+      "message": "<script>alert('XSS')</script>Hello world"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Request accepted — sanitized', function() { pm.expect(pm.response.code).to.be.oneOf([200,201]); });
+      pm.test('No <script> in response', function() { pm.expect(JSON.stringify(pm.response.json())).to.not.include('<script>'); });
+    language: text/javascript
+order: 4000

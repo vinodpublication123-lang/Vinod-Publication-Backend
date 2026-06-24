@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/uploads/audio"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: text
+      key: file
+      value: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('Admin audio auth passed', function() { pm.expect(pm.response.code).to.be.oneOf([201, 400]); });
+    language: text/javascript
+order: 5000

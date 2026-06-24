@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/uploads/book-cover"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: text
+      key: file
+      value: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('403 Forbidden — customer role', function() { pm.response.to.have.status(403); });
+      pm.test('success=false', function() { pm.expect(pm.response.json().success).to.be.false; });
+    language: text/javascript
+order: 2000

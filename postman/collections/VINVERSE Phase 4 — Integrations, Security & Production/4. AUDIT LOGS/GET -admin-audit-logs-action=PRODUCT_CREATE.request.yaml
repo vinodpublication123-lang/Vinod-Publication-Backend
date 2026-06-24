@@ -1,0 +1,22 @@
+$kind: http-request
+name: GET /admin/audit-logs?action=PRODUCT_CREATE
+url: "{{baseUrl}}/admin/audit-logs?action=PRODUCT_CREATE&limit=10"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  action: PRODUCT_CREATE
+  limit: "10"
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var items = pm.response.json().data.items;
+      items.forEach(function(i) { pm.test('action=PRODUCT_CREATE', function() { pm.expect(i.action).to.eql('PRODUCT_CREATE'); }); });
+    language: text/javascript
+order: 2000

@@ -1,0 +1,21 @@
+$kind: http-request
+name: "[NEG] POST /payments/verify — missing fields — 400"
+url: "{{baseUrl}}/payments/verify"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "orderId": "{{orderId}}"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('400 missing signature fields', function() { pm.response.to.have.status(400); });
+    language: text/javascript
+order: 5000

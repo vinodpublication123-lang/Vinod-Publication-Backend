@@ -1,0 +1,1284 @@
+{
+  "info": {
+    "name": "VINVERSE Phase 4 — Integrations, Security & Production",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. SETUP",
+      "item": [
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Customer\",\n  \"email\": \"PLACEHOLDER\",\n  \"password\": \"Password@123\",\n  \"phone\": \"9876543210\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var email = 'p4_' + Date.now() + '@vinverse.test';",
+                  "pm.environment.set('customerEmail', email);",
+                  "pm.environment.set('customerPassword', 'Password@123');",
+                  "var body = JSON.parse(pm.request.body.raw);",
+                  "body.email = email;",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });",
+                  "pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });",
+                  "var d = pm.response.json().data;",
+                  "pm.environment.set('accessToken', d.accessToken);",
+                  "pm.environment.set('refreshToken', d.refreshToken);",
+                  "pm.environment.set('userId', d.user.id);",
+                  "pm.test('accessToken captured', function() { pm.expect(d.accessToken).to.be.a('string').and.not.empty; });",
+                  "pm.test('userId captured', function() { pm.expect(d.user.id).to.be.a('string').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@vinverse.com\",\n  \"password\": \"Admin@123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });",
+                  "pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });",
+                  "var d = pm.response.json().data;",
+                  "pm.environment.set('adminAccessToken', d.accessToken);",
+                  "pm.environment.set('auditActorId', d.user.id);",
+                  "pm.test('adminAccessToken captured', function() { pm.expect(d.accessToken).to.be.a('string').and.not.empty; });",
+                  "pm.test('auditActorId captured', function() { pm.expect(d.user.id).to.be.a('string').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Customer Address",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/addresses",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test Customer\",\n  \"phone\": \"9876543210\",\n  \"line1\": \"123 Test Street\",\n  \"city\": \"Chennai\",\n  \"state\": \"Tamil Nadu\",\n  \"postalCode\": \"600001\",\n  \"country\": \"India\",\n  \"isDefault\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });",
+                  "pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });",
+                  "pm.environment.set('addressId', pm.response.json().data.id);",
+                  "pm.test('addressId captured', function() { pm.expect(pm.environment.get('addressId')).to.be.a('string').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Book Product (Admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/products",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Phase 4 Test Book\",\n  \"sku\": \"PLACEHOLDER\",\n  \"category\": \"BOOK\",\n  \"price\": 499,\n  \"status\": \"ACTIVE\",\n  \"globalStock\": 50,\n  \"trackStock\": true,\n  \"book\": {\n    \"title\": \"Phase 4 Test Book Title\",\n    \"genre\": \"Fiction\",\n    \"shortDescription\": \"Automated test book for Phase 4\",\n    \"qrEnabled\": true,\n    \"qrSongTitle\": \"Test Song\",\n    \"qrSongUrl\": \"https://example.com/test-song.mp3\",\n    \"author\": {\n      \"name\": \"Auto Author\",\n      \"shortBio\": \"Generated for Phase 4 testing\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var sku = 'BOOK-P4-' + Date.now();",
+                  "var body = JSON.parse(pm.request.body.raw);",
+                  "body.sku = sku;",
+                  "body.name = 'Phase 4 Test Book ' + Date.now();",
+                  "body.book.title = 'P4 Book ' + Date.now();",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });",
+                  "pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });",
+                  "var d = pm.response.json().data;",
+                  "pm.environment.set('productId', d.id);",
+                  "pm.environment.set('bookId', d.book ? d.book.id : '');",
+                  "pm.environment.set('bookSlug', d.book ? d.book.slug : '');",
+                  "pm.test('productId captured', function() { pm.expect(d.id).to.be.a('string').and.not.empty; });",
+                  "pm.test('bookSlug captured', function() { pm.expect(pm.environment.get('bookSlug')).to.be.a('string').and.not.empty; });",
+                  "pm.test('book is linked', function() { pm.expect(d.book).to.exist; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Book to Cart",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/cart/items",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"PLACEHOLDER\",\n  \"quantity\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = JSON.parse(pm.request.body.raw);",
+                  "body.productId = pm.environment.get('productId');",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });",
+                  "pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });",
+                  "var d = pm.response.json().data;",
+                  "var item = d.items && d.items[0];",
+                  "if (item) pm.environment.set('cartItemId', item.id);",
+                  "pm.test('cartItemId captured', function() { pm.expect(pm.environment.get('cartItemId')).to.be.a('string').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Checkout — Create Order",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/orders/checkout",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"addressId\": \"{{addressId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });",
+                  "pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });",
+                  "var d = pm.response.json().data;",
+                  "pm.environment.set('orderId', d.id);",
+                  "pm.environment.set('orderNumber', d.orderNumber);",
+                  "pm.test('orderId captured', function() { pm.expect(d.id).to.be.a('string').and.not.empty; });",
+                  "pm.test('orderNumber captured', function() { pm.expect(d.orderNumber).to.match(/^VIN-/); });",
+                  "pm.test('status PENDING', function() { pm.expect(d.status).to.eql('PENDING'); });",
+                  "pm.test('total > 0', function() { pm.expect(Number(d.total)).to.be.gt(0); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. S3 UPLOAD AUTH TESTS",
+      "item": [
+        {
+          "name": "[NEG] Upload book-cover — No Auth — 401",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/uploads/book-cover",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "text",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized — no token', function() { pm.response.to.have.status(401); });",
+                  "pm.test('success=false', function() { pm.expect(pm.response.json().success).to.be.false; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEG] Upload book-cover — Customer — 403",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/uploads/book-cover",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "text",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 Forbidden — customer role', function() { pm.response.to.have.status(403); });",
+                  "pm.test('success=false', function() { pm.expect(pm.response.json().success).to.be.false; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[REACH] Upload book-cover — Admin — endpoint reachable",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/uploads/book-cover",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "text",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin auth passed — endpoint reached', function() { pm.expect(pm.response.code).to.be.oneOf([201, 400]); });",
+                  "pm.test('Returns valid JSON', function() { pm.expect(pm.response.json()).to.have.property('success'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEG] Upload audio — No Auth — 401",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/uploads/audio",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "text",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 audio no auth', function() { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[REACH] Upload audio — Admin — endpoint reachable",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/uploads/audio",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "text",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin audio auth passed', function() { pm.expect(pm.response.code).to.be.oneOf([201, 400]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. QR SONG SYSTEM",
+      "item": [
+        {
+          "name": "GET /books/slug/:slug — public store",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/books/slug/{{bookSlug}}",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('bookSlug was generated', function() { pm.expect(pm.environment.get('bookSlug'), 'bookSlug not set — run 0.SETUP first').to.be.ok; });",
+                  "pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });",
+                  "pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });",
+                  "var d = pm.response.json().data;",
+                  "pm.test('has title', function() { pm.expect(d).to.have.property('title'); });",
+                  "pm.test('has author', function() { pm.expect(d).to.have.property('author'); });",
+                  "pm.test('has product', function() { pm.expect(d).to.have.property('product'); });",
+                  "pm.test('product is ACTIVE', function() { pm.expect(d.product.status).to.eql('ACTIVE'); });",
+                  "pm.test('qrEnabled true', function() { pm.expect(d.qrEnabled).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /books/:slug/qr — QR landing",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/books/{{bookSlug}}/qr",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('bookSlug was generated', function() { pm.expect(pm.environment.get('bookSlug'), 'bookSlug not set — run 0.SETUP first').to.be.ok; });",
+                  "pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });",
+                  "pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });",
+                  "var d = pm.response.json().data;",
+                  "pm.test('has title', function() { pm.expect(d).to.have.property('title'); });",
+                  "pm.test('has author', function() { pm.expect(d).to.have.property('author'); });",
+                  "pm.test('qrEnabled is true', function() { pm.expect(d.qrEnabled).to.be.true; });",
+                  "pm.test('songTitle present', function() { pm.expect(d.songTitle).to.be.a('string'); });",
+                  "pm.test('songUrl present', function() { pm.expect(d.songUrl).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEG] GET /books/slug/:slug — not found",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/books/slug/slug-does-not-exist-xyz123",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 not found', function() { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEG] GET /books/:slug/qr — not found",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/books/slug-does-not-exist-xyz123/qr",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 not found', function() { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. PAYMENTS",
+      "item": [
+        {
+          "name": "POST /payments/create-order",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/payments/create-order",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('orderId was generated', function() { pm.expect(pm.environment.get('orderId'), 'orderId not set — run 0.SETUP first').to.be.ok; });",
+                  "var code = pm.response.code;",
+                  "pm.test('201 created or 503 not configured — never 500', function() { pm.expect(code).to.be.oneOf([201, 503]); });",
+                  "if (code === 201) {",
+                  "  var d = pm.response.json().data;",
+                  "  pm.environment.set('razorpayOrderId', d.razorpayOrderId);",
+                  "  pm.test('razorpayOrderId captured', function() { pm.expect(d.razorpayOrderId).to.be.a('string').and.not.empty; });",
+                  "  pm.test('amount in paise', function() { pm.expect(d.amount).to.be.a('number').and.gt(0); });",
+                  "  pm.test('currency is INR', function() { pm.expect(d.currency).to.eql('INR'); });",
+                  "} else {",
+                  "  pm.test('503 Razorpay not configured — structured error', function() { pm.response.to.have.status(503); });",
+                  "  pm.test('error message is string', function() { pm.expect(pm.response.json().message).to.be.a('string'); });",
+                  "  pm.test('success=false', function() { pm.expect(pm.response.json().success).to.be.false; });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEG] POST /payments/verify — invalid signature",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/payments/verify",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"razorpayOrderId\": \"order_FAKE123456\",\n  \"razorpayPaymentId\": \"pay_FAKE123456\",\n  \"razorpaySignature\": \"TAMPERED_INVALID_SIGNATURE_XYZ\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('orderId was generated', function() { pm.expect(pm.environment.get('orderId'), 'orderId not set — run 0.SETUP first').to.be.ok; });",
+                  "pm.test('400 invalid signature', function() { pm.response.to.have.status(400); });",
+                  "pm.test('success=false', function() { pm.expect(pm.response.json().success).to.be.false; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEG] POST /payments/create-order — no auth — 401",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/payments/create-order",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', function() { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEG] POST /payments/create-order — missing orderId — 400",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/payments/create-order",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 missing orderId', function() { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEG] POST /payments/verify — missing fields — 400",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/payments/verify",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 missing signature fields', function() { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. AUDIT LOGS",
+      "item": [
+        {
+          "name": "GET /admin/audit-logs — list all",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/audit-logs?page=1&limit=20",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });",
+                  "pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });",
+                  "var d = pm.response.json().data;",
+                  "pm.test('items is array', function() { pm.expect(d.items).to.be.an('array'); });",
+                  "pm.test('pagination.total exists', function() { pm.expect(d.pagination).to.have.property('total'); });",
+                  "pm.test('has audit entries from setup', function() { pm.expect(d.pagination.total).to.be.gte(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /admin/audit-logs?action=PRODUCT_CREATE",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/audit-logs?action=PRODUCT_CREATE&limit=10",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });",
+                  "pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });",
+                  "var items = pm.response.json().data.items;",
+                  "items.forEach(function(i) { pm.test('action=PRODUCT_CREATE', function() { pm.expect(i.action).to.eql('PRODUCT_CREATE'); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /admin/audit-logs?entityType=Order",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/audit-logs?entityType=Order",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });",
+                  "pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });",
+                  "var items = pm.response.json().data.items;",
+                  "items.forEach(function(i) { pm.test('entityType=Order', function() { pm.expect(i.entityType).to.eql('Order'); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /admin/audit-logs?action=PAYMENT_VERIFIED",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/audit-logs?action=PAYMENT_VERIFIED",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });",
+                  "pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });",
+                  "pm.test('items is array', function() { pm.expect(pm.response.json().data.items).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEG] GET /admin/audit-logs — no auth — 401",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/audit-logs",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', function() { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEG] GET /admin/audit-logs — customer auth — 403",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/audit-logs",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 Forbidden — customer cannot access audit logs', function() { pm.response.to.have.status(403); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. SECURITY TESTS",
+      "item": [
+        {
+          "name": "[SEC] Admin route as customer — 403",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/orders",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 RBAC enforced', function() { pm.response.to.have.status(403); });",
+                  "pm.test('success=false', function() { pm.expect(pm.response.json().success).to.be.false; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[SEC] Protected route no token — 401",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/orders",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 no token', function() { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[SEC] Tampered JWT — 401",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiJ9.TAMPERED.INVALIDSIGNATURE"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 tampered JWT rejected', function() { pm.response.to.have.status(401); });",
+                  "pm.test('success=false', function() { pm.expect(pm.response.json().success).to.be.false; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[SEC] XSS in inquiry message — sanitized",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/inquiries",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"XSS Test\",\n  \"email\": \"xss@autotest.com\",\n  \"type\": \"GENERAL\",\n  \"message\": \"<script>alert('XSS')</script>Hello world\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Request accepted — sanitized', function() { pm.expect(pm.response.code).to.be.oneOf([200,201]); });",
+                  "pm.test('No <script> in response', function() { pm.expect(JSON.stringify(pm.response.json())).to.not.include('<script>'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[SEC] SQL injection in search — server survives",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/products?search=' OR 1=1--",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Server did not crash', function() { pm.expect(pm.response.code).to.be.oneOf([200,400]); });",
+                  "pm.test('Valid JSON returned', function() { pm.response.json(); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[SEC] Payment for non-existent order — 404",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/payments/create-order",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"cldoesnotexist0000000000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 or 400 — order not found', function() { pm.expect(pm.response.code).to.be.oneOf([400,404,422]); });",
+                  "pm.test('success=false', function() { pm.expect(pm.response.json().success).to.be.false; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[SEC] No stack trace in error response",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/nonexistent-route-xyz-abc-def",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('No stack trace in body', function() {",
+                  "  var b = JSON.stringify(pm.response.json());",
+                  "  pm.expect(b).to.not.include('at Object.');",
+                  "  pm.expect(b).to.not.include('node_modules');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

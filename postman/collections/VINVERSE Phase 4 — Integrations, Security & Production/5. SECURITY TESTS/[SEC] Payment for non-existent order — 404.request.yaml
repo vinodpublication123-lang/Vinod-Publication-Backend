@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{baseUrl}}/payments/create-order"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "orderId": "cldoesnotexist0000000000000"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('404 or 400 — order not found', function() { pm.expect(pm.response.code).to.be.oneOf([400,404,422]); });
+      pm.test('success=false', function() { pm.expect(pm.response.json().success).to.be.false; });
+    language: text/javascript
+order: 6000

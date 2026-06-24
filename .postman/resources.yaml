@@ -9,6 +9,7 @@ cloudResources:
     ..\postman\collections\VINVERSE Phase 2 API Test Suite: 79577649-7cbb-442a-a10e-c781aa5e64fc
     ..\postman\collections\VINVERSE Phase 2 — Fully Automated: cc9e0637-24e0-466e-9feb-70cfe91eda00
     ..\postman\collections\VINVERSE Phase 3 — Commerce Engine: 8699cda0-be8e-43eb-a344-f1cceed4fd70
+    ..\postman\collections\VINVERSE Phase 4 — Integrations, Security & Production: 31831b8f-6a18-427f-afdc-e092b618e586
 
 # All resources in the `postman/` folder are automatically registered in Local View.
 # Point to additional files outside the `postman/` folder to register them individually. Example:

@@ -2,14 +2,28 @@ import { Prisma } from "@prisma/client";
 import { AppError } from "../../lib/errors";
 import { prisma } from "../../lib/prisma";
 import { CreateInquiryInput, UpdateInquiryInput, InquiryQuery } from "./inquiries.schemas";
+import { sendInquiryReceivedEmail, sendAdminNewInquiryEmail } from "../email/email.service";
+import { sanitizeText } from "../../lib/sanitize";
 
 export async function createInquiry(input: CreateInquiryInput) {
-  return prisma.inquiry.create({
+  const sanitizedInput = {
+    ...input,
+    message: sanitizeText(input.message),
+    subject: input.subject ? sanitizeText(input.subject) : input.subject,
+  };
+
+  const inquiry = await prisma.inquiry.create({
     data: {
-      ...input,
-      metadata: input.metadata as Prisma.InputJsonValue ?? Prisma.JsonNull,
+      ...sanitizedInput,
+      metadata: sanitizedInput.metadata as Prisma.InputJsonValue ?? Prisma.JsonNull,
     },
   });
+
+  // Fire-and-forget email notifications
+  sendInquiryReceivedEmail(inquiry.email, inquiry.name);
+  sendAdminNewInquiryEmail(inquiry.name, inquiry.email, inquiry.type, inquiry.subject ?? undefined);
+
+  return inquiry;
 }
 
 

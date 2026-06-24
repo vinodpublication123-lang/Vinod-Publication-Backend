@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/uploads/book-cover"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: text
+      key: file
+      value: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Admin auth passed — endpoint reached', function() { pm.expect(pm.response.code).to.be.oneOf([201, 400]); });
+      pm.test('Returns valid JSON', function() { pm.expect(pm.response.json()).to.have.property('success'); });
+    language: text/javascript
+order: 3000

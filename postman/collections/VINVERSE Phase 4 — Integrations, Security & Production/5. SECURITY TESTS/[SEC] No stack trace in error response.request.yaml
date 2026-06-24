@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/nonexistent-route-xyz-abc-def"
+method: GET
+headers:
+  Content-Type: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('No stack trace in body', function() {
+        var b = JSON.stringify(pm.response.json());
+        pm.expect(b).to.not.include('at Object.');
+        pm.expect(b).to.not.include('node_modules');
+      });
+    language: text/javascript
+order: 7000

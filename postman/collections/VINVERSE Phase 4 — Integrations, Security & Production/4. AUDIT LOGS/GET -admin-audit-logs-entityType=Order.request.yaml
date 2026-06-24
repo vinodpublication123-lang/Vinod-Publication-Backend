@@ -1,0 +1,21 @@
+$kind: http-request
+name: GET /admin/audit-logs?entityType=Order
+url: "{{baseUrl}}/admin/audit-logs?entityType=Order"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  entityType: Order
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var items = pm.response.json().data.items;
+      items.forEach(function(i) { pm.test('entityType=Order', function() { pm.expect(i.entityType).to.eql('Order'); }); });
+    language: text/javascript
+order: 3000
