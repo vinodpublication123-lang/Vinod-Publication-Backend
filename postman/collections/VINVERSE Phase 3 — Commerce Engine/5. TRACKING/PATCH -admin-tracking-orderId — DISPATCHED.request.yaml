@@ -1,0 +1,32 @@
+$kind: http-request
+name: PATCH /admin/tracking/:orderId — DISPATCHED
+url: "{{baseUrl}}/admin/tracking/{{orderId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "DISPATCHED",
+      "carrier": "FedEx",
+      "trackingNumber": "FX1234567890",
+      "trackingUrl": "https://fedex.com/track/FX1234567890",
+      "notes": "Handed to courier"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var d = pm.response.json().data;
+      pm.test('status=DISPATCHED', function() { pm.expect(d.status).to.eql('DISPATCHED'); });
+      pm.test('carrier saved', function() { pm.expect(d.carrier).to.eql('FedEx'); });
+      pm.test('trackingNumber saved', function() { pm.expect(d.trackingNumber).to.eql('FX1234567890'); });
+      pm.test('[AUTO] shippedAt set', function() { pm.expect(d.shippedAt).to.not.be.null; });
+    language: text/javascript
+order: 2000

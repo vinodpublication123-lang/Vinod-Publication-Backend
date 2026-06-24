@@ -1,0 +1,23 @@
+$kind: http-request
+name: GET /admin/orders/analytics
+url: "{{baseUrl}}/admin/orders/analytics"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var d = pm.response.json().data;
+      pm.test('totalOrders >= 1', function() { pm.expect(d.totalOrders).to.be.gte(1); });
+      pm.test('revenue >= 0', function() { pm.expect(d.revenue).to.be.gte(0); });
+      pm.test('has topProducts array', function() { pm.expect(d.topProducts).to.be.an('array'); });
+      pm.test('has recentOrders array', function() { pm.expect(d.recentOrders).to.be.an('array'); });
+      pm.test('averageOrderValue >= 0', function() { pm.expect(d.averageOrderValue).to.be.gte(0); });
+    language: text/javascript
+order: 3000

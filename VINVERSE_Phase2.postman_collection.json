@@ -1589,7 +1589,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+                  "pm.test('422 Unprocessable — Zod validation failed', () => pm.response.to.have.status(422));"
                 ]
               }
             }
@@ -1613,7 +1613,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('400 or 404', () => pm.expect(pm.response.code).to.be.oneOf([400, 404]));"
+                  "pm.test('422 or 404', () => pm.expect(pm.response.code).to.be.oneOf([422, 404]));"
                 ]
               }
             }
@@ -1656,7 +1656,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('400 — book data required', () => pm.response.to.have.status(400));"
+                  "pm.test('422 — book data required (Zod)', () => pm.response.to.have.status(422));"
                 ]
               }
             }

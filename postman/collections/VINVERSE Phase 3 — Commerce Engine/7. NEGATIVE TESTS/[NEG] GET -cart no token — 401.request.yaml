@@ -1,0 +1,11 @@
+$kind: http-request
+name: "[NEG] GET /cart no token — 401"
+url: "{{baseUrl}}/cart"
+method: GET
+headers:
+  Content-Type: application/json
+scripts:
+  - type: afterResponse
+    code: pm.test('401 Unauthorized', function() { pm.response.to.have.status(401); });
+    language: text/javascript
+order: 1000

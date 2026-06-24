@@ -1,0 +1,38 @@
+$kind: http-request
+url: "{{baseUrl}}/products"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "VINVERSE Mug",
+      "sku": "PLACEHOLDER",
+      "category": "MERCHANDISE",
+      "price": 14.99,
+      "status": "ACTIVE",
+      "globalStock": 50
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: beforeRequest
+    code: |-
+      var sku = 'MUG-P3-' + Date.now();
+      pm.environment.set('merchSku', sku);
+      var body = JSON.parse(pm.request.body.raw);
+      body.sku = sku;
+      pm.request.body.raw = JSON.stringify(body);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var d = pm.response.json().data;
+      pm.environment.set('merchProductId', d.id);
+      pm.test('merchProductId captured', function() { pm.expect(d.id).to.be.a('string').and.not.empty; });
+    language: text/javascript
+order: 5000

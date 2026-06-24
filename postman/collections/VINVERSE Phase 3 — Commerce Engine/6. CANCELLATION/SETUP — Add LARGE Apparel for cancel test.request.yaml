@@ -1,0 +1,30 @@
+$kind: http-request
+url: "{{baseUrl}}/cart/items"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "productId": "PLACEHOLDER",
+      "sizeLabel": "LARGE",
+      "quantity": 1
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: beforeRequest
+    code: |-
+      var body = JSON.parse(pm.request.body.raw);
+      body.productId = pm.environment.get('apparelProductId');
+      pm.request.body.raw = JSON.stringify(body);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+    language: text/javascript
+order: 1000

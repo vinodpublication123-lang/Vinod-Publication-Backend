@@ -1,0 +1,52 @@
+$kind: http-request
+url: "{{baseUrl}}/products"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "VINVERSE T-Shirt",
+      "sku": "PLACEHOLDER",
+      "category": "APPAREL",
+      "price": 29.99,
+      "status": "ACTIVE",
+      "sizes": [
+        {
+          "label": "SMALL",
+          "stock": 10
+        },
+        {
+          "label": "MEDIUM",
+          "stock": 15
+        },
+        {
+          "label": "LARGE",
+          "stock": 5
+        }
+      ]
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: beforeRequest
+    code: |-
+      var sku = 'TSHIRT-P3-' + Date.now();
+      pm.environment.set('apparelSku', sku);
+      var body = JSON.parse(pm.request.body.raw);
+      body.sku = sku;
+      pm.request.body.raw = JSON.stringify(body);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var d = pm.response.json().data;
+      pm.environment.set('apparelProductId', d.id);
+      pm.test('apparelProductId captured', function() { pm.expect(d.id).to.be.a('string').and.not.empty; });
+      pm.test('Apparel has 3 sizes', function() { pm.expect(d.sizes.length).to.eql(3); });
+    language: text/javascript
+order: 4000

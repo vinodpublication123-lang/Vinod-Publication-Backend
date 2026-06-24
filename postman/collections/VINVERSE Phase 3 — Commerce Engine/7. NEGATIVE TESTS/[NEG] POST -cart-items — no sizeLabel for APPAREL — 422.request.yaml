@@ -1,0 +1,25 @@
+$kind: http-request
+name: "[NEG] POST /cart/items — no sizeLabel for APPAREL — 422"
+url: "{{baseUrl}}/cart/items"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "productId": "PLACEHOLDER",
+      "quantity": 1
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: beforeRequest
+    code: var b = JSON.parse(pm.request.body.raw); b.productId = pm.environment.get('apparelProductId'); pm.request.body.raw = JSON.stringify(b);
+    language: text/javascript
+  - type: afterResponse
+    code: pm.test('422 sizeLabel required', function() { pm.response.to.have.status(422); });
+    language: text/javascript
+order: 2000

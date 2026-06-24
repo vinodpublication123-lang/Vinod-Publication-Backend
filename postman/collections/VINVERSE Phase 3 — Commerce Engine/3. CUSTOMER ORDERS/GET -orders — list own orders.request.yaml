@@ -1,0 +1,21 @@
+$kind: http-request
+name: GET /orders — list own orders
+url: "{{baseUrl}}/orders"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var d = pm.response.json().data;
+      pm.test('is array', function() { pm.expect(d.items).to.be.an('array'); });
+      pm.test('has pagination', function() { pm.expect(d.pagination).to.exist; });
+      pm.test('at least 1 order', function() { pm.expect(d.items.length).to.be.gte(1); });
+    language: text/javascript
+order: 1000

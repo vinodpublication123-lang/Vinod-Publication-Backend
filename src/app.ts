@@ -12,6 +12,10 @@ import { booksRouter } from "./modules/books/books.routes";
 import { authorsRouter } from "./modules/authors/authors.routes";
 import { inquiriesRouter } from "./modules/inquiries/inquiries.routes";
 import { settingsRouter } from "./modules/settings/settings.routes";
+// Phase 3
+import { cartRouter } from "./modules/cart/cart.routes";
+import { ordersRouter, adminOrdersRouter } from "./modules/orders/orders.routes";
+import { trackingRouter, adminTrackingRouter } from "./modules/tracking/tracking.routes";
 
 export const app = express();
 
@@ -24,14 +28,14 @@ app.use(express.json());
 app.get("/", (_req, res) => {
   res.status(200).json({
     success: true,
-    data: { name: "VINVERSE Backend", phase: "Phase 2", status: "running" },
+    data: { name: "VINVERSE Backend", phase: "Phase 3", status: "running" },
   });
 });
 
 // ── Health ────────────────────────────────────────────────────────────────────
 app.use("/health", healthRouter);
 
-// ── API v1 ────────────────────────────────────────────────────────────────────
+// ── API v1 — Phase 2 ─────────────────────────────────────────────────────────
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", usersRouter);
 app.use("/api/v1/addresses", addressesRouter);
@@ -40,6 +44,15 @@ app.use("/api/v1/books", booksRouter);
 app.use("/api/v1/authors", authorsRouter);
 app.use("/api/v1/inquiries", inquiriesRouter);
 app.use("/api/v1/settings", settingsRouter);
+
+// ── API v1 — Phase 3 ─────────────────────────────────────────────────────────
+app.use("/api/v1/cart", cartRouter);
+app.use("/api/v1/orders", ordersRouter);
+// Customer tracking: GET /api/v1/orders/:orderId/tracking
+app.use("/api/v1", trackingRouter);
+// Admin namespaced
+app.use("/api/v1/admin/orders", adminOrdersRouter);
+app.use("/api/v1/admin/tracking", adminTrackingRouter);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {

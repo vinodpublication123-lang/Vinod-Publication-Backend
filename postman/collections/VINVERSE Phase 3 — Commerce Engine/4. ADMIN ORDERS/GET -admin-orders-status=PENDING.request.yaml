@@ -1,0 +1,20 @@
+$kind: http-request
+name: GET /admin/orders?status=PENDING
+url: "{{baseUrl}}/admin/orders?status=PENDING"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  status: PENDING
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      pm.response.json().data.items.forEach(function(o) { pm.test('status=PENDING', function() { pm.expect(o.status).to.eql('PENDING'); }); });
+    language: text/javascript
+order: 2000

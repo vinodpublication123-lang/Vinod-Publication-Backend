@@ -1,0 +1,18 @@
+$kind: http-request
+name: DELETE /cart/items/:id — Remove one item
+url: "{{baseUrl}}/cart/items/{{cartItemId}}"
+method: DELETE
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      pm.test('1 item remains', function() { pm.expect(pm.response.json().data.items.length).to.eql(1); });
+    language: text/javascript
+order: 7000

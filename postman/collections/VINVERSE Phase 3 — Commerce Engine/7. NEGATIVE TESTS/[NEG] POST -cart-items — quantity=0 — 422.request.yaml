@@ -1,0 +1,23 @@
+$kind: http-request
+name: "[NEG] POST /cart/items — quantity=0 — 422"
+url: "{{baseUrl}}/cart/items"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "productId": "cm000000000000000000000000",
+      "sizeLabel": "SMALL",
+      "quantity": 0
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('422 quantity>=1 required', function() { pm.response.to.have.status(422); });
+    language: text/javascript
+order: 3000

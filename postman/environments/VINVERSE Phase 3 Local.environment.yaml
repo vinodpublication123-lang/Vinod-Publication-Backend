@@ -1,0 +1,34 @@
+name: VINVERSE Phase 3 Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:4000/api/v1'
+  - key: accessToken
+    value: ''
+  - key: refreshToken
+    value: ''
+  - key: adminAccessToken
+    value: ''
+  - key: adminRefreshToken
+    value: ''
+  - key: customerEmail
+    value: ''
+  - key: customerPassword
+    value: ''
+  - key: addressId
+    value: ''
+  - key: apparelProductId
+    value: ''
+  - key: apparelSku
+    value: ''
+  - key: merchProductId
+    value: ''
+  - key: merchSku
+    value: ''
+  - key: cartItemId
+    value: ''
+  - key: orderId
+    value: ''
+  - key: orderNumber
+    value: ''
+  - key: cancelOrderId
+    value: ''

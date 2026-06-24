@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "admin@vinverse.com",
+      "password": "Admin@123456"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var d = pm.response.json().data;
+      pm.environment.set('adminAccessToken', d.accessToken);
+      pm.environment.set('adminRefreshToken', d.refreshToken);
+      pm.test('adminAccessToken captured', function() { pm.expect(d.accessToken).to.be.a('string').and.not.empty; });
+    language: text/javascript
+order: 2000

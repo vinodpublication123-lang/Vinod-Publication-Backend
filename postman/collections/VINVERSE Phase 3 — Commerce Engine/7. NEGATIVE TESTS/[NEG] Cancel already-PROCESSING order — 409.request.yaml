@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/orders/{{orderId}}/cancel"
+method: PATCH
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('409 cannot cancel PROCESSING', function() { pm.response.to.have.status(409); });
+    language: text/javascript
+order: 7000

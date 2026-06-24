@@ -1,0 +1,26 @@
+$kind: http-request
+name: PATCH /admin/tracking/:orderId — DELIVERED
+url: "{{baseUrl}}/admin/tracking/{{orderId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "DELIVERED"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var d = pm.response.json().data;
+      pm.test('status=DELIVERED', function() { pm.expect(d.status).to.eql('DELIVERED'); });
+      pm.test('[AUTO] deliveredAt set', function() { pm.expect(d.deliveredAt).to.not.be.null; });
+    language: text/javascript
+order: 3000

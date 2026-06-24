@@ -1,0 +1,20 @@
+$kind: http-request
+name: GET /orders/:orderId/tracking
+url: "{{baseUrl}}/orders/{{orderId}}/tracking"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var d = pm.response.json().data;
+      pm.test('orderId matches', function() { pm.expect(d.orderId).to.eql(pm.environment.get('orderId')); });
+      pm.test('status NOT_DISPATCHED', function() { pm.expect(d.status).to.eql('NOT_DISPATCHED'); });
+    language: text/javascript
+order: 3000

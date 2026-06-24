@@ -1,0 +1,21 @@
+$kind: http-request
+name: GET /admin/orders/:id — full detail
+url: "{{baseUrl}}/admin/orders/{{orderId}}"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var d = pm.response.json().data;
+      pm.test('has user', function() { pm.expect(d.user).to.exist; });
+      pm.test('has items', function() { pm.expect(d.items).to.be.an('array'); });
+      pm.test('has tracking', function() { pm.expect(d.tracking).to.exist; });
+    language: text/javascript
+order: 4000

@@ -1,0 +1,21 @@
+$kind: http-request
+name: "[NEG] POST /orders/checkout — empty cart — 422"
+url: "{{baseUrl}}/orders/checkout"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "addressId": "{{addressId}}"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('422 empty cart', function() { pm.response.to.have.status(422); });
+    language: text/javascript
+order: 4000

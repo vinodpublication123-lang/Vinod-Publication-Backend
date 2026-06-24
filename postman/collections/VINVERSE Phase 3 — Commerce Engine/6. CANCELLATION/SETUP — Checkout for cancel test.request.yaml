@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/orders/checkout"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "addressId": "{{addressId}}"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      pm.environment.set('cancelOrderId', pm.response.json().data.id);
+      pm.test('cancelOrderId captured', function() { pm.expect(pm.environment.get('cancelOrderId')).to.be.a('string'); });
+    language: text/javascript
+order: 2000

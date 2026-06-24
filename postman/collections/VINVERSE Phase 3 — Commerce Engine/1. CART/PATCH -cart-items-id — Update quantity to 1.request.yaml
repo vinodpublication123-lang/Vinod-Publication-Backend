@@ -1,0 +1,26 @@
+$kind: http-request
+name: PATCH /cart/items/:id — Update quantity to 1
+url: "{{baseUrl}}/cart/items/{{cartItemId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "quantity": 1
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', function() { pm.expect(pm.response.code).to.be.oneOf([200,201,204]); });
+      pm.test('success=true', function() { pm.expect(pm.response.json().success).to.be.true; });
+      var items = pm.response.json().data.items;
+      var updated = items.find(function(i) { return i.id === pm.environment.get('cartItemId'); });
+      pm.test('quantity updated to 1', function() { pm.expect(updated.quantity).to.eql(1); });
+    language: text/javascript
+order: 6000
