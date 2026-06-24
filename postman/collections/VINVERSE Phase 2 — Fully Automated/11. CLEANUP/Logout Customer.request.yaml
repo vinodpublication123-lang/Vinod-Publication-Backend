@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/logout"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "refreshToken": "{{refreshToken}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      pm.environment.unset('accessToken');
+      pm.environment.unset('refreshToken');
+    language: text/javascript
+order: 5000

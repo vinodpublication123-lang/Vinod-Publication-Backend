@@ -1,0 +1,25 @@
+$kind: http-request
+url: "{{baseUrl}}/inquiries"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Test User",
+      "email": "test@vinverse.com",
+      "message": "I need help with my order",
+      "type": "GENERAL",
+      "subject": "Order Query"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      var d = pm.response.json().data;
+      pm.environment.set('inquiryId', d.id);
+      pm.test('inquiryId captured', () => pm.expect(d.id).to.be.a('string').and.not.empty);
+    language: text/javascript
+order: 1000

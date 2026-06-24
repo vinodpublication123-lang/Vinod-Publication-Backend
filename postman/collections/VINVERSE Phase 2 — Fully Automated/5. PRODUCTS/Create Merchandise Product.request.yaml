@@ -1,0 +1,34 @@
+$kind: http-request
+url: "{{baseUrl}}/products"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "VINVERSE Mug",
+      "sku": "{{merchSku}}",
+      "category": "MERCHANDISE",
+      "price": 14.99,
+      "status": "ACTIVE",
+      "globalStock": 50
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: beforeRequest
+    code: pm.environment.set('merchSku', 'MUG-' + Date.now());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      var d = pm.response.json().data;
+      pm.environment.set('productId', d.id);
+      pm.test('productId captured', () => pm.expect(d.id).to.be.a('string').and.not.empty);
+      pm.test('globalStock=50', () => pm.expect(Number(d.globalStock)).to.eql(50));
+    language: text/javascript
+order: 2000

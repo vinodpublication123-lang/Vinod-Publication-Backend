@@ -2,6 +2,13 @@
 workspace:
   id: 7679c9d1-db1f-4bac-8d4a-4e9bbec455bb
 
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections:
+    ..\postman\collections\VINVERSE Phase 2 API Test Suite: 79577649-7cbb-442a-a10e-c781aa5e64fc
+    ..\postman\collections\VINVERSE Phase 2 — Fully Automated: cc9e0637-24e0-466e-9feb-70cfe91eda00
+
 # All resources in the `postman/` folder are automatically registered in Local View.
 # Point to additional files outside the `postman/` folder to register them individually. Example:
 #localResources:

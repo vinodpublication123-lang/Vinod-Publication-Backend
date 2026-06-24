@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/books/{{bookId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "genre": "Hard Sci-Fi",
+      "shortDescription": "Updated description"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      pm.test('genre updated', () => pm.expect(pm.response.json().data.genre).to.eql('Hard Sci-Fi'));
+    language: text/javascript
+order: 3000

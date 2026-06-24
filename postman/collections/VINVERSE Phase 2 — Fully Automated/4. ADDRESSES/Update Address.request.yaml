@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/addresses/{{addressId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "line2": "Apt 4B"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      pm.test('line2 updated', () => pm.expect(pm.response.json().data.line2).to.eql('Apt 4B'));
+    language: text/javascript
+order: 3000

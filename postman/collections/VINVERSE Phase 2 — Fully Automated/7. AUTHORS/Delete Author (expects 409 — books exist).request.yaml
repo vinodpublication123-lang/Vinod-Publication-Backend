@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/authors/{{authorId}}"
+method: DELETE
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('Returns 409 — author has books', () => pm.response.to.have.status(409));
+    language: text/javascript
+order: 4000

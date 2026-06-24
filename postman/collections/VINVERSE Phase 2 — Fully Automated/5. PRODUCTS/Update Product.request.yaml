@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/products/{{productId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "price": 12.99,
+      "status": "ACTIVE"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      pm.test('price updated', () => pm.expect(Number(pm.response.json().data.price)).to.eql(12.99));
+    language: text/javascript
+order: 8000

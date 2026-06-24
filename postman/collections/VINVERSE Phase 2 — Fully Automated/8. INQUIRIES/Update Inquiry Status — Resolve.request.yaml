@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/inquiries/{{inquiryId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "RESOLVED"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      pm.test('status updated to RESOLVED', () => pm.expect(pm.response.json().data.status).to.eql('RESOLVED'));
+    language: text/javascript
+order: 5000

@@ -1,0 +1,32 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Test Customer",
+      "email": "{{customerEmail}}",
+      "password": "Password@123",
+      "phone": "9876543210"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      var ts = Date.now();
+      pm.environment.set('customerEmail', 'customer_' + ts + '@vinverse.test');
+      pm.environment.set('customerPassword', 'Password@123');
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      var d = pm.response.json().data;
+      pm.environment.set('accessToken', d.accessToken);
+      pm.environment.set('refreshToken', d.refreshToken);
+      pm.test('accessToken captured', () => pm.expect(d.accessToken).to.be.a('string').and.not.empty);
+      pm.test('refreshToken captured', () => pm.expect(d.refreshToken).to.be.a('string').and.not.empty);
+    language: text/javascript
+order: 1000

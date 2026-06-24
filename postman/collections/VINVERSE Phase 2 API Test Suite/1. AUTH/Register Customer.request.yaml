@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/register"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "name": "Test Customer",
+      "email": "customer@vinverse.test",
+      "password": "Password@123",
+      "phone": "9876543210"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 20X', function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);
+      });
+      pm.test('Success is true', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+      });
+      var jsonData = pm.response.json();
+      pm.environment.set('accessToken', jsonData.data.accessToken);
+      pm.environment.set('refreshToken', jsonData.data.refreshToken);
+    language: text/javascript
+order: 1000

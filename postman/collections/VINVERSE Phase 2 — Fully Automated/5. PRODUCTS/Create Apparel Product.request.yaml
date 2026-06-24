@@ -1,0 +1,39 @@
+$kind: http-request
+url: "{{baseUrl}}/products"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "VINVERSE T-Shirt",
+      "sku": "{{apparelSku}}",
+      "category": "APPAREL",
+      "price": 29.99,
+      "status": "ACTIVE",
+      "sizes": [
+        { "label": "SMALL", "stock": 10 },
+        { "label": "MEDIUM", "stock": 15 },
+        { "label": "LARGE", "stock": 5 }
+      ]
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: beforeRequest
+    code: pm.environment.set('apparelSku', 'TSHIRT-' + Date.now());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      var d = pm.response.json().data;
+      pm.environment.set('apparelProductId', d.id);
+      pm.test('apparelProductId captured', () => pm.expect(d.id).to.be.a('string').and.not.empty);
+      pm.test('Apparel sizes persist', () => pm.expect(d.sizes.length).to.eql(3));
+      pm.test('SMALL size stock=10', () => { var s = d.sizes.find(x => x.label==='SMALL'); pm.expect(s.stock).to.eql(10); });
+    language: text/javascript
+order: 1000

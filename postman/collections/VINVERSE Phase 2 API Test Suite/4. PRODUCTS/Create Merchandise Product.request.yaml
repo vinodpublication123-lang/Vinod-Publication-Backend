@@ -1,0 +1,31 @@
+$kind: http-request
+url: "{{baseUrl}}/products"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "name": "VINVERSE Mug",
+      "sku": "MUG-01",
+      "category": "MERCHANDISE",
+      "price": 14.99,
+      "globalStock": 50
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 20X', function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);
+      });
+      pm.test('Success is true', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+      });
+      var jsonData = pm.response.json();
+      pm.environment.set('productId', jsonData.data.id);
+    language: text/javascript
+order: 2000

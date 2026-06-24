@@ -1,0 +1,41 @@
+$kind: http-request
+url: "{{baseUrl}}/products"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Childhood's End",
+      "sku": "{{bookSku2}}",
+      "category": "BOOK",
+      "price": 17.99,
+      "status": "ACTIVE",
+      "book": {
+        "title": "Childhood's End",
+        "genre": "Sci-Fi",
+        "author": {
+          "name": "Arthur C. Clarke",
+          "shortBio": "Legendary Sci-Fi author"
+        }
+      }
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: beforeRequest
+    code: pm.environment.set('bookSku2', 'BOOK2-' + Date.now());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      var d = pm.response.json().data;
+      pm.environment.set('bookProductId2', d.id);
+      pm.test('[BIZ] Author reused — same authorId', () => pm.expect(d.book.author.id).to.eql(pm.environment.get('authorId')));
+      pm.test('[BIZ] No duplicate author created', () => pm.expect(d.book.authorId).to.eql(pm.environment.get('authorId')));
+    language: text/javascript
+order: 4000

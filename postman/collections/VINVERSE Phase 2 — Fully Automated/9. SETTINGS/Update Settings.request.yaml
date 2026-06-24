@@ -1,0 +1,29 @@
+$kind: http-request
+url: "{{baseUrl}}/settings"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "storeName": "VINVERSE STORE",
+      "supportEmail": "support@vinverse.com",
+      "currency": "INR",
+      "taxEnabled": true
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      var d = pm.response.json().data;
+      pm.test('[BIZ] storeName persists', () => pm.expect(d.storeName).to.eql('VINVERSE STORE'));
+      pm.test('supportEmail saved', () => pm.expect(d.supportEmail).to.eql('support@vinverse.com'));
+      pm.test('currency is INR', () => pm.expect(d.currency).to.eql('INR'));
+    language: text/javascript
+order: 2000

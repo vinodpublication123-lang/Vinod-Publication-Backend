@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/settings"
+method: GET
+headers:
+  Content-Type: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      pm.test('has storeName', () => pm.expect(pm.response.json().data.storeName).to.exist);
+    language: text/javascript
+order: 1000

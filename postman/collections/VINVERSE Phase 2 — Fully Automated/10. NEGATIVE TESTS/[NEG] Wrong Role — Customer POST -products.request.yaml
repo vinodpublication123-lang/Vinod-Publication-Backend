@@ -1,0 +1,24 @@
+$kind: http-request
+name: "[NEG] Wrong Role — Customer POST /products"
+url: "{{baseUrl}}/products"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Test",
+      "sku": "NEG-001",
+      "category": "MERCHANDISE",
+      "price": 10
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('403 Forbidden — customer cannot create product', () => pm.response.to.have.status(403));
+    language: text/javascript
+order: 2000

@@ -1,0 +1,48 @@
+$kind: http-request
+url: "{{baseUrl}}/products"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "The Quantum Enigma",
+      "sku": "{{bookSku}}",
+      "category": "BOOK",
+      "price": 19.99,
+      "status": "ACTIVE",
+      "book": {
+        "title": "The Quantum Enigma",
+        "genre": "Sci-Fi",
+        "shortDescription": "A journey through quantum worlds",
+        "author": {
+          "name": "Arthur C. Clarke",
+          "shortBio": "Legendary Sci-Fi author"
+        }
+      }
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: beforeRequest
+    code: pm.environment.set('bookSku', 'BOOK-' + Date.now());
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      var d = pm.response.json().data;
+      pm.environment.set('bookProductId', d.id);
+      pm.environment.set('bookId', d.book.id);
+      pm.environment.set('authorId', d.book.author.id);
+      pm.test('bookProductId captured', () => pm.expect(d.id).to.be.a('string').and.not.empty);
+      pm.test('bookId captured', () => pm.expect(d.book.id).to.be.a('string').and.not.empty);
+      pm.test('authorId captured', () => pm.expect(d.book.author.id).to.be.a('string').and.not.empty);
+      pm.test('[BIZ] Book created under Product', () => pm.expect(d.book).to.exist);
+      pm.test('[BIZ] Author created under Book', () => pm.expect(d.book.author).to.exist);
+      pm.test('[BIZ] Author name correct', () => pm.expect(d.book.author.name).to.eql('Arthur C. Clarke'));
+    language: text/javascript
+order: 3000

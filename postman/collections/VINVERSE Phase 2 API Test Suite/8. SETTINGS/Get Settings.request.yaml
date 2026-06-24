@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/settings"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 20X', function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);
+      });
+      pm.test('Success is true', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+      });
+    language: text/javascript
+order: 1000

@@ -1,0 +1,42 @@
+$kind: http-request
+url: "{{baseUrl}}/products"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "name": "The Quantum Enigma",
+      "sku": "BOOK-01",
+      "category": "BOOK",
+      "price": 19.99,
+      "book": {
+        "title": "The Quantum Enigma",
+        "genre": "Sci-Fi",
+        "author": {
+          "name": "Arthur C. Clarke",
+          "shortBio": "Famous Sci-Fi Author"
+        }
+      }
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 20X', function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);
+      });
+      pm.test('Success is true', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+      });
+      var jsonData = pm.response.json();
+      pm.environment.set('bookProductId', jsonData.data.id);
+      pm.environment.set('bookId', jsonData.data.book.id);
+      pm.environment.set('authorId', jsonData.data.book.authorId);
+      pm.test('Book creation creates Product', function() { pm.expect(jsonData.data.book).to.exist; });
+      pm.test('Book creation creates Author', function() { pm.expect(jsonData.data.book.author).to.exist; });
+    language: text/javascript
+order: 3000

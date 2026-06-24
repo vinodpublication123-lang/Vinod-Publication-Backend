@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/products"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Bad Book",
+      "sku": "BADBOOK-001",
+      "category": "BOOK",
+      "price": 10
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('400 — book data required', () => pm.response.to.have.status(400));
+    language: text/javascript
+order: 5000

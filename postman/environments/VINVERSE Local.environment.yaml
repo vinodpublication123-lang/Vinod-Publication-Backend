@@ -1,0 +1,36 @@
+name: VINVERSE Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:4000/api/v1'
+  - key: adminAccessToken
+    value: ''
+  - key: adminRefreshToken
+    value: ''
+  - key: addressId
+    value: ''
+  - key: productId
+    value: ''
+  - key: apparelProductId
+    value: ''
+  - key: bookProductId
+    value: ''
+  - key: bookId
+    value: ''
+  - key: authorId
+    value: ''
+  - key: inquiryId
+    value: ''
+  - key: customerEmail
+    value: ''
+  - key: customerPassword
+    value: ''
+  - key: apparelSku
+    value: ''
+  - key: merchSku
+    value: ''
+  - key: bookSku
+    value: ''
+  - key: bookSku2
+    value: ''
+  - key: bookProductId2
+    value: ''

@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/products/{{bookProductId}}"
+method: DELETE
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('book product 1 deleted', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+    language: text/javascript
+order: 1000

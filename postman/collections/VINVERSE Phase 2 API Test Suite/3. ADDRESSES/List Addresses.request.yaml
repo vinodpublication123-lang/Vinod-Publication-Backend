@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/addresses"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 20X', function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);
+      });
+      pm.test('Success is true', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+      });
+      pm.test('Is array', function() { pm.expect(pm.response.json().data).to.be.an('array'); });
+    language: text/javascript
+order: 2000

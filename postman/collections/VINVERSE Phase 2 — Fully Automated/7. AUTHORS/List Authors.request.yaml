@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/authors"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      pm.test('has items', () => pm.expect(pm.response.json().data.items).to.be.an('array'));
+      pm.test('at least 1 author exists', () => pm.expect(pm.response.json().data.items.length).to.be.gte(1));
+    language: text/javascript
+order: 1000

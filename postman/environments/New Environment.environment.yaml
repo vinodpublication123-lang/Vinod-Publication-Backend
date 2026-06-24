@@ -1,2 +1,14 @@
 name: New Environment
-values: []
+values:
+  - key: customerEmail
+    value: ''
+  - key: customerPassword
+    value: ''
+  - key: apparelSku
+    value: ''
+  - key: merchSku
+    value: ''
+  - key: bookSku
+    value: ''
+  - key: bookSku2
+    value: ''

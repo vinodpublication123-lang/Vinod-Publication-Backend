@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/books/{{bookId}}"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminAccessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      pm.test('bookId matches', () => pm.expect(pm.response.json().data.id).to.eql(pm.environment.get('bookId')));
+      pm.test('has author', () => pm.expect(pm.response.json().data.author).to.exist);
+    language: text/javascript
+order: 2000

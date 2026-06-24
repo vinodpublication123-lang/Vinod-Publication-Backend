@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/products"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "name": "Test",
+      "sku": "123",
+      "category": "MERCHANDISE",
+      "price": 10
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('Status code is 403', function () { pm.response.to.have.status(403); });
+    language: text/javascript
+order: 2000

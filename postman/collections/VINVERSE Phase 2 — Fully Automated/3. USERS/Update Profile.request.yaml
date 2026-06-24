@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/users/me"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Updated Customer"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      pm.test('name updated', () => pm.expect(pm.response.json().data.name).to.eql('Updated Customer'));
+    language: text/javascript
+order: 2000

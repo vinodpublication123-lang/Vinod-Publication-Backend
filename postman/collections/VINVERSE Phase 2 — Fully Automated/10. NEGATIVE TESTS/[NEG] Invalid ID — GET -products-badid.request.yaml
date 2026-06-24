@@ -1,0 +1,11 @@
+$kind: http-request
+name: "[NEG] Invalid ID — GET /products/badid"
+url: "{{baseUrl}}/products/badid"
+method: GET
+headers:
+  Content-Type: application/json
+scripts:
+  - type: afterResponse
+    code: pm.test('400 or 404', () => pm.expect(pm.response.code).to.be.oneOf([400, 404]));
+    language: text/javascript
+order: 4000

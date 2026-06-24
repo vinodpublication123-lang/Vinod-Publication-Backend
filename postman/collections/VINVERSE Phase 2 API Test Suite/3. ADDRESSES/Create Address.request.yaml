@@ -1,0 +1,33 @@
+$kind: http-request
+url: "{{baseUrl}}/addresses"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "John Doe",
+      "phone": "1234567890",
+      "line1": "123 Main St",
+      "city": "Metropolis",
+      "state": "NY",
+      "postalCode": "10001",
+      "country": "USA"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 20X', function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);
+      });
+      pm.test('Success is true', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+      });
+      var jsonData = pm.response.json();
+      pm.environment.set('addressId', jsonData.data.id);
+    language: text/javascript
+order: 1000

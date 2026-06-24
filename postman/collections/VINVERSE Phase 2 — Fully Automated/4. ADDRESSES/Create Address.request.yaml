@@ -1,0 +1,31 @@
+$kind: http-request
+url: "{{baseUrl}}/addresses"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "John Doe",
+      "phone": "1234567890",
+      "line1": "123 Main St",
+      "city": "Chennai",
+      "state": "Tamil Nadu",
+      "postalCode": "600001",
+      "country": "India"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      var d = pm.response.json().data;
+      pm.environment.set('addressId', d.id);
+      pm.test('addressId captured', () => pm.expect(d.id).to.be.a('string').and.not.empty);
+    language: text/javascript
+order: 1000

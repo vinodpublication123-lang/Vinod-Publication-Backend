@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/refresh"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "refreshToken": "{{refreshToken}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 20X', function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);
+      });
+      pm.test('Success is true', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+      });
+      var jsonData = pm.response.json();
+      pm.environment.set('accessToken', jsonData.data.accessToken);
+    language: text/javascript
+order: 3000

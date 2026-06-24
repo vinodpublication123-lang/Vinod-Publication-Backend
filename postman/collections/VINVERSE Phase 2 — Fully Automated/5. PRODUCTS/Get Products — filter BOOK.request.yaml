@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/products?category=BOOK"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  category: BOOK
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 20x', () => pm.expect(pm.response.code).to.be.oneOf([200,201,204]));
+      pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);
+      pm.test('all items are BOOK', () => { pm.response.json().data.items.forEach(p => pm.expect(p.category).to.eql('BOOK')); });
+    language: text/javascript
+order: 6000
