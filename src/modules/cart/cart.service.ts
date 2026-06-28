@@ -11,7 +11,7 @@ async function getOrCreateCart(userId: string) {
     where: { userId },
     update: {},
     create: { userId },
-    include: { items: { include: { product: { include: { sizes: true } } } } },
+    include: { items: { include: { product: { include: { sizes: true } }, variant: { include: { images: true, sizes: true } } } } },
   });
 }
 
@@ -39,6 +39,9 @@ async function loadFullCart(userId: string) {
           product: {
             include: { sizes: true, book: { include: { author: true } } },
           },
+          variant: {
+            include: { images: true, sizes: true },
+          },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -63,22 +66,31 @@ export async function addCartItem(userId: string, input: AddCartItemInput) {
   // 1. Validate product exists and is ACTIVE
   const product = await prisma.product.findUnique({
     where: { id: input.productId },
-    include: { sizes: true },
+    include: { sizes: true, variants: { include: { sizes: true } } },
   });
 
   if (!product || product.status !== "ACTIVE") {
     throw new AppError("Product not found or not available", 404);
   }
 
-  // 2. Validate size for APPAREL
+  // 2. Validate size and variant for APPAREL
   if (product.category === "APPAREL") {
+    if (!input.variantId) {
+      throw new AppError("variantId is required for APPAREL products", 422);
+    }
     if (!input.sizeLabel) {
       throw new AppError("sizeLabel is required for APPAREL products", 422);
     }
-    const size = product.sizes.find((s) => s.label === input.sizeLabel);
+    
+    const variant = product.variants.find((v) => v.id === input.variantId);
+    if (!variant) {
+      throw new AppError("Variant not found", 404);
+    }
+
+    const size = variant.sizes.find((s) => s.label === input.sizeLabel);
     if (!size) {
       throw new AppError(
-        `Size ${input.sizeLabel} not available for this product`,
+        `Size ${input.sizeLabel} not available for this variant`,
         422
       );
     }
@@ -106,6 +118,7 @@ export async function addCartItem(userId: string, input: AddCartItemInput) {
     where: {
       cartId: cart.id,
       productId: input.productId,
+      variantId: input.variantId ?? null,
       sizeLabel: input.sizeLabel ?? null,
     },
   });
@@ -114,8 +127,9 @@ export async function addCartItem(userId: string, input: AddCartItemInput) {
     const newQty = existingItem.quantity + input.quantity;
 
     // Re-validate merged quantity against stock
-    if (product.category === "APPAREL" && input.sizeLabel) {
-      const size = product.sizes.find((s) => s.label === input.sizeLabel)!;
+    if (product.category === "APPAREL" && input.variantId && input.sizeLabel) {
+      const variant = product.variants.find((v) => v.id === input.variantId)!;
+      const size = variant.sizes.find((s) => s.label === input.sizeLabel)!;
       if (product.trackStock && size.stock < newQty) {
         throw new AppError(
           `Cannot add ${input.quantity} more. Stock available: ${size.stock}, already in cart: ${existingItem.quantity}`,
@@ -138,6 +152,7 @@ export async function addCartItem(userId: string, input: AddCartItemInput) {
       data: {
         cartId: cart.id,
         productId: input.productId,
+        variantId: input.variantId ?? null,
         sizeLabel: input.sizeLabel ?? null,
         quantity: input.quantity,
       },
@@ -155,15 +170,15 @@ export async function updateCartItem(
   // Verify item belongs to this user's cart
   const item = await prisma.cartItem.findFirst({
     where: { id: itemId, cart: { userId } },
-    include: { product: { include: { sizes: true } } },
+    include: { product: { include: { sizes: true } }, variant: { include: { sizes: true } } },
   });
 
   if (!item) throw new AppError("Cart item not found", 404);
 
   // Stock validation
-  const { product } = item;
-  if (product.category === "APPAREL" && item.sizeLabel) {
-    const size = product.sizes.find((s) => s.label === item.sizeLabel);
+  const { product, variant } = item;
+  if (product.category === "APPAREL" && variant && item.sizeLabel) {
+    const size = variant.sizes.find((s) => s.label === item.sizeLabel);
     if (product.trackStock && size && size.stock < input.quantity) {
       throw new AppError(
         `Insufficient stock for size ${item.sizeLabel}. Available: ${size.stock}`,

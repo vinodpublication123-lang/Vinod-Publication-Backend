@@ -31,18 +31,23 @@ async function generateOrderNumber(): Promise<string> {
     .slice(0, 10)
     .replace(/-/g, "");
 
-  // Count orders placed today
-  const startOfDay = new Date(today);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(today);
-  endOfDay.setHours(23, 59, 59, 999);
-
-  const count = await prisma.order.count({
-    where: { placedAt: { gte: startOfDay, lte: endOfDay } },
+  // Find the highest sequence number for today's date string
+  const prefix = `VIN-${dateStr}-`;
+  const lastOrder = await prisma.order.findFirst({
+    where: { orderNumber: { startsWith: prefix } },
+    orderBy: { orderNumber: 'desc' },
   });
 
-  const sequence = String(count + 1).padStart(4, "0");
-  return `VIN-${dateStr}-${sequence}`;
+  let sequence = 1;
+  if (lastOrder) {
+    const lastSeq = parseInt(lastOrder.orderNumber.replace(prefix, ""), 10);
+    if (!isNaN(lastSeq)) {
+      sequence = lastSeq + 1;
+    }
+  }
+
+  const sequenceStr = String(sequence).padStart(4, "0");
+  return `${prefix}${sequenceStr}`;
 }
 
 // ── Shared order include ──────────────────────────────────────────────────────
@@ -57,8 +62,12 @@ const orderInclude = {
           slug: true,
           primaryImage: true,
           category: true,
+          variants: { include: { images: true } }
         },
       },
+      variant: {
+        include: { images: true, sizes: true }
+      }
     },
   },
   address: true,
@@ -69,32 +78,26 @@ const orderInclude = {
 
 export async function checkout(userId: string, input: CheckoutInput) {
   return prisma.$transaction(async (tx) => {
-    // 1. Load cart
-    const cart = await tx.cart.findUnique({
-      where: { userId },
-      include: {
-        items: {
-          include: {
-            product: { include: { sizes: true } },
-          },
-        },
-      },
-    });
-
-    if (!cart || cart.items.length === 0) {
+    // 1. Verify items exist
+    if (!input.items || input.items.length === 0) {
       throw new AppError("Cart is empty", 422);
     }
 
-    // 2. Validate address belongs to user
-    const address = await tx.address.findFirst({
-      where: { id: input.addressId, userId },
+    // 2. Create or update address
+    const address = await tx.address.create({
+      data: {
+        userId,
+        fullName: input.shippingAddress.name,
+        phone: input.shippingAddress.phone,
+        line1: input.shippingAddress.address1,
+        line2: input.shippingAddress.address2 || "",
+        city: input.shippingAddress.city,
+        state: input.shippingAddress.state,
+        postalCode: input.shippingAddress.pincode,
+        country: input.shippingAddress.country,
+        isDefault: true,
+      }
     });
-    if (!address) {
-      throw new AppError(
-        "Address not found or does not belong to you",
-        404
-      );
-    }
 
     // 3. Validate inventory and compute totals
     let subtotal = 0;
@@ -104,18 +107,25 @@ export async function checkout(userId: string, input: CheckoutInput) {
     const taxRate =
       settings?.taxEnabled ? Number(settings.defaultTaxRate ?? 0) / 100 : 0;
 
-    for (const item of cart.items) {
-      const { product } = item;
+    for (const item of input.items) {
+      const product = await tx.product.findUnique({
+        where: { id: item.productId },
+        include: { sizes: true, variants: { include: { sizes: true } } },
+      });
 
-      if (product.status !== "ACTIVE") {
+      if (!product || product.status !== "ACTIVE") {
         throw new AppError(
-          `Product "${product.name}" is no longer available`,
+          `Product is no longer available`,
           409
         );
       }
 
-      if (product.category === "APPAREL" && item.sizeLabel) {
-        const size = product.sizes.find((s) => s.label === item.sizeLabel);
+      if (product.category === "APPAREL" && item.variantId && item.sizeLabel) {
+        const variant = product.variants.find((v) => v.id === item.variantId);
+        if (!variant) {
+          throw new AppError(`Variant not found for "${product.name}"`, 409);
+        }
+        const size = variant.sizes.find((s) => s.label === item.sizeLabel);
         if (!size || (product.trackStock && size.stock < item.quantity)) {
           throw new AppError(
             `Insufficient stock for "${product.name}" size ${item.sizeLabel}`,
@@ -152,7 +162,7 @@ export async function checkout(userId: string, input: CheckoutInput) {
       data: {
         orderNumber,
         userId,
-        addressId: input.addressId,
+        addressId: address.id,
         status: "PENDING",
         paymentStatus: "PENDING",
         subtotal,
@@ -164,8 +174,10 @@ export async function checkout(userId: string, input: CheckoutInput) {
     });
 
     // 5. Create order items (snapshot immutable data)
-    for (const item of cart.items) {
-      const { product } = item;
+    for (const item of input.items) {
+      const product = await tx.product.findUnique({ where: { id: item.productId }});
+      if (!product) continue;
+      
       const unitPrice = Number(product.salePrice ?? product.price);
       const taxAmount = Number(
         (unitPrice * item.quantity * taxRate).toFixed(2)
@@ -176,7 +188,8 @@ export async function checkout(userId: string, input: CheckoutInput) {
         data: {
           orderId: order.id,
           productId: product.id,
-          sizeLabel: item.sizeLabel,
+          variantId: item.variantId ?? null,
+          sizeLabel: item.sizeLabel as any,
           productName: product.name,
           sku: product.sku,
           quantity: item.quantity,
@@ -187,9 +200,9 @@ export async function checkout(userId: string, input: CheckoutInput) {
       });
 
       // 6. Deduct inventory
-      if (product.category === "APPAREL" && item.sizeLabel) {
-        await tx.productSize.updateMany({
-          where: { productId: product.id, label: item.sizeLabel },
+      if (product.category === "APPAREL" && item.variantId && item.sizeLabel) {
+        await tx.variantSize.updateMany({
+          where: { variantId: item.variantId, label: item.sizeLabel as any },
           data: { stock: { decrement: item.quantity } },
         });
       } else {
@@ -201,7 +214,10 @@ export async function checkout(userId: string, input: CheckoutInput) {
     }
 
     // 7. Clear cart
-    await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+    const userCart = await tx.cart.findUnique({ where: { userId } });
+    if (userCart) {
+      await tx.cartItem.deleteMany({ where: { cartId: userCart.id } });
+    }
 
     // 8. Create TrackingInfo
     await tx.trackingInfo.create({
@@ -306,9 +322,9 @@ export async function cancelOrder(userId: string, orderId: string) {
 
     // Restore inventory
     for (const item of order.items) {
-      if (item.sizeLabel) {
-        await tx.productSize.updateMany({
-          where: { productId: item.productId, label: item.sizeLabel },
+      if (item.variantId && item.sizeLabel) {
+        await tx.variantSize.updateMany({
+          where: { variantId: item.variantId, label: item.sizeLabel },
           data: { stock: { increment: item.quantity } },
         });
       } else {

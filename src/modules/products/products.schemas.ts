@@ -10,6 +10,31 @@ import {
 const sizeSchema = z.object({
   label: z.nativeEnum(ProductSizeLabel),
   stock: z.number().int().min(0).default(0),
+  lowStockThreshold: z.number().int().min(0).optional().default(0),
+});
+
+// ── Variants ──────────────────────────────────────────────────────────────────
+const variantImageSchema = z.object({
+  id: z.string().optional(),
+  url: z.string(),
+  displayOrder: z.number().int().optional().default(0),
+  isPrimary: z.boolean().optional().default(false),
+});
+
+const variantSizeSchema = z.object({
+  id: z.string().optional(),
+  label: z.nativeEnum(ProductSizeLabel),
+  stock: z.number().int().min(0).default(0),
+  lowStockThreshold: z.number().int().min(0).optional().default(0),
+});
+
+const variantSchema = z.object({
+  id: z.string().optional(),
+  colourName: z.string().min(1),
+  colourHex: z.string().optional().nullable(),
+  displayOrder: z.number().int().optional().default(0),
+  images: z.array(variantImageSchema).optional().default([]),
+  sizes: z.array(variantSizeSchema).optional().default([]),
 });
 
 // ── Author (embedded in product creation) ───────────────────────────────────
@@ -27,17 +52,22 @@ const bookInputSchema = z.object({
   publicationDate: z.coerce.date().optional(),
   shortDescription: z.string().max(500).optional(),
   fullDescription: z.string().optional(),
-  coverUrl: z.string().url().optional(),
+  coverUrl: z.string().optional(),
   qrEnabled: z.boolean().optional().default(false),
   qrSongTitle: z.string().optional(),
-  qrSongUrl: z.string().url().optional(),
-  author: authorInputSchema,
-});
+  qrSongUrl: z.string().optional(),
+  // Either link to existing author by id, or provide inline author data
+  authorId: z.string().optional(),
+  author: authorInputSchema.optional(),
+}).refine(
+  (val) => val.authorId || val.author,
+  { message: "Either authorId or author details must be provided", path: ["author"] }
+);
 
 // ── Product base ─────────────────────────────────────────────────────────────
 const baseProductSchema = z.object({
   name: z.string().min(2).max(300),
-  sku: z.string().min(1).max(100),
+  sku: z.string().min(1).max(100).optional(),
   brand: z.string().max(100).optional(),
   category: z.nativeEnum(ProductCategory),
   status: z.nativeEnum(ProductStatus).optional().default("DRAFT"),
@@ -51,9 +81,12 @@ const baseProductSchema = z.object({
     .nativeEnum(OutOfStockBehavior)
     .optional()
     .default("SHOW_AS_OUT_OF_STOCK"),
-  primaryImage: z.string().url().optional().nullable(),
-  galleryImages: z.array(z.string().url()).optional().default([]),
+  primaryImage: z.string().optional().nullable(),
+  galleryImages: z.array(z.string()).optional().default([]),
   sizes: z.array(sizeSchema).optional().default([]),
+  variants: z.array(variantSchema).optional().default([]),
+  shortDescription: z.string().max(500).optional(),
+  fullDescription: z.string().optional(),
   // Book-specific fields (only valid when category === BOOK)
   book: bookInputSchema.optional(),
 });
@@ -77,6 +110,8 @@ export const createProductSchema = baseProductSchema.superRefine((val, ctx) => {
         path: ["book"],
       });
     }
+  } else if (val.category === "APPAREL") {
+    // Apparel can have variants, but we don't strictly require it here to allow drafts
   } else {
     if (val.book) {
       ctx.addIssue({

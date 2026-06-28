@@ -6,25 +6,31 @@ import { getBooks, getBook, patchBook, removeBook, getBookBySlugPublic, getBookQ
 
 export const booksRouter = Router();
 
-booksRouter.use(authenticate(), authorize("ADMIN"));
-
-// GET /api/v1/books
+// ── Public routes (no auth) ───────────────────────────────────────────────────
+// GET /api/v1/books  — public listing for the website
 booksRouter.get("/", validate({ query: bookQuerySchema }), getBooks);
 
-// GET /api/v1/books/:id
+// GET /api/v1/books/:id  — public book detail
 booksRouter.get("/:id", validate({ params: bookParamsSchema }), getBook);
 
+// ── Admin-only routes ─────────────────────────────────────────────────────────
 // PATCH /api/v1/books/:id
 booksRouter.patch(
   "/:id",
+  authenticate(), authorize("ADMIN"),
   validate({ params: bookParamsSchema, body: updateBookSchema }),
   patchBook
 );
 
 // DELETE /api/v1/books/:id
-booksRouter.delete("/:id", validate({ params: bookParamsSchema }), removeBook);
+booksRouter.delete(
+  "/:id",
+  authenticate(), authorize("ADMIN"),
+  validate({ params: bookParamsSchema }),
+  removeBook
+);
 
-// ── Public routes (no auth) ───────────────────────────────────────────────────
+// ── Public routes (separate router, no auth) ──────────────────────────────────
 // Mounted on separate router to avoid the admin authenticate() middleware above
 export const booksPublicRouter = Router();
 

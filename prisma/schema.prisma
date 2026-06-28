@@ -34,6 +34,8 @@ enum ProductSizeLabel {
   SMALL
   MEDIUM
   LARGE
+  XL
+  XXL
 }
 
 enum OutOfStockBehavior {
@@ -70,6 +72,9 @@ enum InquiryType {
   PUBLISH_WITH_US
   ORDER_SUPPORT
   PRODUCT
+  AUTHOR_INQUIRY
+  COLLABORATION
+  OTHER
 }
 
 enum InquiryStatus {
@@ -157,9 +162,12 @@ model Product {
   globalStock        Int                @default(0)
   lowStockThreshold  Int                @default(5)
   outOfStockBehavior OutOfStockBehavior @default(SHOW_AS_OUT_OF_STOCK)
+  shortDescription   String?
+  fullDescription    String?
   primaryImage       String?
   galleryImages      String[]           @default([])
   sizes              ProductSize[]
+  variants           ProductVariant[]
   book               Book?
   orderItems         OrderItem[]
   cartItems          CartItem[]
@@ -188,12 +196,14 @@ model CartItem {
   cart      Cart              @relation(fields: [cartId], references: [id], onDelete: Cascade)
   productId String
   product   Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId String?
+  variant   ProductVariant?   @relation(fields: [variantId], references: [id], onDelete: Cascade)
   sizeLabel ProductSizeLabel?
   quantity  Int               @default(1)
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 
-  @@unique([cartId, productId, sizeLabel])
+  @@unique([cartId, productId, variantId, sizeLabel])
   @@index([cartId])
   @@index([productId])
   @@map("cart_items")
@@ -204,14 +214,61 @@ model ProductSize {
   id        String           @id @default(cuid())
   productId String
   product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
-  label     ProductSizeLabel
-  stock     Int              @default(0)
-  createdAt DateTime         @default(now())
+  label             ProductSizeLabel
+  stock             Int              @default(0)
+  lowStockThreshold Int              @default(0)
+  createdAt         DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
   @@unique([productId, label])
   @@index([label])
   @@map("product_sizes")
+}
+
+model ProductVariant {
+  id           String          @id @default(cuid())
+  productId    String
+  product      Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  colourName   String
+  colourHex    String?
+  displayOrder Int             @default(0)
+  images       VariantImage[]
+  sizes        VariantSize[]
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model VariantImage {
+  id           String         @id @default(cuid())
+  variantId    String
+  variant      ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  url          String
+  displayOrder Int            @default(0)
+  isPrimary    Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([variantId])
+  @@map("variant_images")
+}
+
+model VariantSize {
+  id                String           @id @default(cuid())
+  variantId         String
+  variant           ProductVariant   @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  label             ProductSizeLabel
+  stock             Int              @default(0)
+  lowStockThreshold Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([variantId, label])
+  @@map("variant_sizes")
 }
 
 model Author {
@@ -288,6 +345,8 @@ model OrderItem {
   order       Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId   String
   product     Product           @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variantId   String?
+  variant     ProductVariant?   @relation(fields: [variantId], references: [id], onDelete: Restrict)
   sizeLabel   ProductSizeLabel?
   productName String
   sku         String

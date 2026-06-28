@@ -4,7 +4,25 @@ import { OrderStatus, PaymentStatus } from "@prisma/client";
 // ── Checkout ──────────────────────────────────────────────────────────────────
 
 export const checkoutSchema = z.object({
-  addressId: z.string().cuid({ message: "Invalid addressId" }),
+  shippingAddress: z.object({
+    name: z.string().min(2),
+    email: z.string().email(),
+    phone: z.string().min(6),
+    address1: z.string().min(3),
+    address2: z.string().optional(),
+    city: z.string().min(2),
+    state: z.string().min(2),
+    pincode: z.string().min(3),
+    country: z.string().default("India"),
+  }),
+  items: z.array(
+    z.object({
+      productId: z.string(),
+      variantId: z.string().optional(),
+      quantity: z.number().min(1),
+      sizeLabel: z.string().optional(),
+    })
+  ).min(1, "Cart is empty"),
 });
 
 // ── Params ────────────────────────────────────────────────────────────────────

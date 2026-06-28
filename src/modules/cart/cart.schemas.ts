@@ -5,6 +5,7 @@ import { ProductSizeLabel } from "@prisma/client";
 
 export const addCartItemSchema = z.object({
   productId: z.string().cuid({ message: "Invalid productId" }),
+  variantId: z.string().cuid().optional(),
   sizeLabel: z.nativeEnum(ProductSizeLabel).optional(),
   quantity: z.number().int().min(1, "Quantity must be at least 1"),
 });

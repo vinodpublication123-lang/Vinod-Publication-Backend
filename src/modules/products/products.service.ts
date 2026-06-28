@@ -50,6 +50,7 @@ export async function listProducts(query: ProductQuery) {
       orderBy: { [sort]: order },
       include: {
         sizes: true,
+        variants: { include: { images: true, sizes: true } },
         book: { include: { author: true } },
       },
     }),
@@ -71,6 +72,7 @@ export async function getProductById(id: string) {
     where: { id },
     include: {
       sizes: true,
+      variants: { include: { images: true, sizes: true } },
       book: { include: { author: true } },
     },
   });
@@ -87,37 +89,45 @@ export async function createProduct(input: CreateProductInput) {
     // 1. Resolve or create Author (only for BOOK)
     let authorId: string | undefined;
     if (input.category === "BOOK" && input.book) {
-      const { author: authorInput, ...bookData } = input.book;
+      const { author: authorInput, authorId: existingAuthorId, ...bookData } = input.book;
 
-      // Check for existing author by name (case-insensitive)
-      let author = await tx.author.findFirst({
-        where: { name: { equals: authorInput.name, mode: "insensitive" } },
-        select: { id: true },
-      });
+      let resolvedAuthorId: string | undefined;
 
-      if (!author) {
-        const authorSlug = await resolveUniqueSlug(authorInput.name, "author");
-        author = await tx.author.create({
-          data: {
-            name: authorInput.name,
-            slug: authorSlug,
-            shortBio: authorInput.shortBio,
-            fullBio: authorInput.fullBio,
-            avatarUrl: authorInput.avatarUrl,
-            status: "ACTIVE",
-          },
+      if (existingAuthorId) {
+        // Use existing author by ID directly
+        resolvedAuthorId = existingAuthorId;
+      } else if (authorInput) {
+        // Check for existing author by name (case-insensitive), create if not found
+        let author = await tx.author.findFirst({
+          where: { name: { equals: authorInput.name, mode: "insensitive" } },
           select: { id: true },
         });
+
+        if (!author) {
+          const authorSlug = await resolveUniqueSlug(authorInput.name, "author");
+          author = await tx.author.create({
+            data: {
+              name: authorInput.name,
+              slug: authorSlug,
+              shortBio: authorInput.shortBio,
+              fullBio: authorInput.fullBio,
+              avatarUrl: authorInput.avatarUrl,
+              status: "ACTIVE",
+            },
+            select: { id: true },
+          });
+        }
+        resolvedAuthorId = author.id;
       }
 
-      authorId = author.id;
+      authorId = resolvedAuthorId;
 
       // 2. Create Product
       const product = await tx.product.create({
         data: {
           name: input.name,
           slug: productSlug,
-          sku: input.sku,
+          sku: input.sku ?? "",
           brand: input.brand,
           category: input.category,
           status: input.status ?? "DRAFT",
@@ -128,6 +138,8 @@ export async function createProduct(input: CreateProductInput) {
           globalStock: input.globalStock ?? 0,
           lowStockThreshold: input.lowStockThreshold ?? 5,
           outOfStockBehavior: input.outOfStockBehavior ?? "SHOW_AS_OUT_OF_STOCK",
+          shortDescription: input.shortDescription ?? null,
+          fullDescription: input.fullDescription ?? null,
           primaryImage: input.primaryImage ?? null,
           galleryImages: input.galleryImages ?? [],
           sizes: {
@@ -154,7 +166,7 @@ export async function createProduct(input: CreateProductInput) {
           qrEnabled: bookData.qrEnabled ?? false,
           qrSongTitle: bookData.qrSongTitle,
           qrSongUrl: bookData.qrSongUrl,
-          authorId,
+          authorId: authorId!,
           productId: product.id,
         },
       });
@@ -164,6 +176,7 @@ export async function createProduct(input: CreateProductInput) {
         where: { id: product.id },
         include: {
           sizes: true,
+          variants: { include: { images: true, sizes: true } },
           book: { include: { author: true } },
         },
       });
@@ -173,7 +186,7 @@ export async function createProduct(input: CreateProductInput) {
         data: {
           name: input.name,
           slug: productSlug,
-          sku: input.sku,
+          sku: input.sku ?? "",
           brand: input.brand,
           category: input.category,
           status: input.status ?? "DRAFT",
@@ -184,6 +197,8 @@ export async function createProduct(input: CreateProductInput) {
           globalStock: input.globalStock ?? 0,
           lowStockThreshold: input.lowStockThreshold ?? 5,
           outOfStockBehavior: input.outOfStockBehavior ?? "SHOW_AS_OUT_OF_STOCK",
+          shortDescription: input.shortDescription ?? null,
+          fullDescription: input.fullDescription ?? null,
           primaryImage: input.primaryImage ?? null,
           galleryImages: input.galleryImages ?? [],
           sizes: {
@@ -192,9 +207,31 @@ export async function createProduct(input: CreateProductInput) {
               stock: s.stock,
             })),
           },
+          variants: input.category === "APPAREL" && input.variants ? {
+            create: input.variants.map((v) => ({
+              colourName: v.colourName,
+              colourHex: v.colourHex,
+              displayOrder: v.displayOrder ?? 0,
+              images: {
+                create: (v.images ?? []).map((img) => ({
+                  url: img.url,
+                  displayOrder: img.displayOrder ?? 0,
+                  isPrimary: img.isPrimary ?? false,
+                })),
+              },
+              sizes: {
+                create: (v.sizes ?? []).map((s) => ({
+                  label: s.label,
+                  stock: s.stock,
+                  lowStockThreshold: s.lowStockThreshold ?? 0,
+                })),
+              },
+            })),
+          } : undefined,
         },
         include: {
           sizes: true,
+          variants: { include: { images: true, sizes: true } },
           book: { include: { author: true } },
         },
       });
@@ -207,11 +244,11 @@ export async function createProduct(input: CreateProductInput) {
 export async function updateProduct(id: string, input: UpdateProductInput) {
   const existing = await prisma.product.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, category: true },
   });
   if (!existing) throw new AppError("Product not found", 404);
 
-  const { sizes, book, ...productData } = input;
+  const { sizes, book, variants, ...productData } = input;
 
   return prisma.$transaction(async (tx) => {
     // Update sizes if provided
@@ -229,12 +266,15 @@ export async function updateProduct(id: string, input: UpdateProductInput) {
         select: { id: true, authorId: true },
       });
       
-      const { author: authorInput, ...bookData } = book;
+      const { author: authorInput, authorId: existingAuthorId, ...bookData } = book;
       
       let finalAuthorId: string | undefined;
 
       // Handle author update/reuse/creation
-      if (authorInput) {
+      if (existingAuthorId) {
+        // Link to an existing author directly
+        finalAuthorId = existingAuthorId;
+      } else if (authorInput) {
         let author = await tx.author.findFirst({
           where: { name: { equals: authorInput.name, mode: "insensitive" } },
           select: { id: true },
@@ -284,11 +324,89 @@ export async function updateProduct(id: string, input: UpdateProductInput) {
       }
     }
 
+    if (variants !== undefined && existing.category === "APPAREL") {
+      const incomingIds = variants.map((v) => v.id).filter(Boolean) as string[];
+      
+      const variantsToDelete = await tx.productVariant.findMany({
+        where: { productId: id, id: { notIn: incomingIds } },
+        include: { orderItems: { take: 1 } },
+      });
+
+      for (const toDel of variantsToDelete) {
+        if (toDel.orderItems.length > 0) {
+          throw new AppError(`Cannot delete variant ${toDel.colourName} because it is associated with existing orders`, 409);
+        } else {
+          await tx.productVariant.delete({ where: { id: toDel.id } });
+        }
+      }
+
+      for (const v of variants) {
+        if (v.id) {
+          await tx.productVariant.update({
+            where: { id: v.id },
+            data: {
+              colourName: v.colourName,
+              colourHex: v.colourHex,
+              displayOrder: v.displayOrder,
+            },
+          });
+          
+          await tx.variantImage.deleteMany({ where: { variantId: v.id } });
+          if (v.images && v.images.length > 0) {
+            await tx.variantImage.createMany({
+              data: v.images.map((img) => ({
+                variantId: v.id as string,
+                url: img.url,
+                displayOrder: img.displayOrder ?? 0,
+                isPrimary: img.isPrimary ?? false,
+              })),
+            });
+          }
+
+          await tx.variantSize.deleteMany({ where: { variantId: v.id } });
+          if (v.sizes && v.sizes.length > 0) {
+            await tx.variantSize.createMany({
+              data: v.sizes.map((s) => ({
+                variantId: v.id as string,
+                label: s.label,
+                stock: s.stock,
+                lowStockThreshold: s.lowStockThreshold ?? 0,
+              })),
+            });
+          }
+        } else {
+          await tx.productVariant.create({
+            data: {
+              productId: id,
+              colourName: v.colourName,
+              colourHex: v.colourHex,
+              displayOrder: v.displayOrder ?? 0,
+              images: {
+                create: (v.images ?? []).map((img) => ({
+                  url: img.url,
+                  displayOrder: img.displayOrder ?? 0,
+                  isPrimary: img.isPrimary ?? false,
+                })),
+              },
+              sizes: {
+                create: (v.sizes ?? []).map((s) => ({
+                  label: s.label,
+                  stock: s.stock,
+                  lowStockThreshold: s.lowStockThreshold ?? 0,
+                })),
+              },
+            },
+          });
+        }
+      }
+    }
+
     return tx.product.update({
       where: { id },
       data: productData as Prisma.ProductUpdateInput,
       include: {
         sizes: true,
+        variants: { include: { images: true, sizes: true } },
         book: { include: { author: true } },
       },
     });
