@@ -114,3 +114,4 @@ export function sendAdminNewInquiryEmail(
   const tpl = adminNewInquiryTemplate(name, email, type, subject);
   sendEmail({ to: env.ADMIN_EMAIL, subject: tpl.subject, html: tpl.html });
 }
+

@@ -31,6 +31,7 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().min(1).default(""),
   EMAIL_FROM: z.string().default("noreply@vinverse.in"),
   ADMIN_EMAIL: z.string().default("admin@vinverse.in"),
+  GOOGLE_SHEETS_WEBHOOK_URL: z.string().url().optional(),
 
   // ── CORS ──────────────────────────────────────────────────────────────────
   FRONTEND_URL: z.string().default("http://localhost:3000"),

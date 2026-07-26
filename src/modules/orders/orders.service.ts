@@ -9,6 +9,57 @@ import {
 } from "./orders.schemas";
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "../email/email.service";
 import { auditLog } from "../audit/audit.service";
+import { env } from "../../config/env";
+import { logger } from "../../lib/logger";
+
+// ── Printing Press — Google Sheets Notification ───────────────────────────────
+
+async function notifyPrintingPressGoogleSheets(payload: {
+  orderNumber: string;
+  orderDate: string;
+  customer: { name: string; phone: string };
+  address: {
+    fullName: string;
+    line1: string;
+    line2?: string | null;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    phone: string;
+  };
+  items: Array<{
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+    coverImageUrl?: string | null;
+  }>;
+  orderTotal: number;
+}): Promise<void> {
+  if (!env.GOOGLE_SHEETS_WEBHOOK_URL) {
+    logger.warn(
+      "[Sheets] GOOGLE_SHEETS_WEBHOOK_URL not set — skipping Google Sheets notification"
+    );
+    return;
+  }
+  try {
+    const res = await fetch(env.GOOGLE_SHEETS_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      logger.warn("[Sheets] Webhook returned non-OK status", { status: res.status });
+    } else {
+      logger.info("[Sheets] Book order logged to Google Sheets", {
+        orderNumber: payload.orderNumber,
+      });
+    }
+  } catch (err) {
+    logger.error("[Sheets] Failed to notify Google Sheets", { error: String(err) });
+  }
+}
 
 // ── Allowed order status transitions ─────────────────────────────────────────
 
@@ -251,6 +302,43 @@ export async function checkout(userId: string, input: CheckoutInput) {
         fullOrder.user.name,
         Number(fullOrder.total)
       );
+
+      // Log book items to printing press Google Sheet (fire-and-forget)
+      const bookItems = fullOrder.items.filter(
+        (i) => i.product.category === "BOOK"
+      );
+      if (bookItems.length > 0) {
+        const orderDate = new Date(fullOrder.placedAt).toLocaleDateString(
+          "en-IN",
+          { day: "2-digit", month: "long", year: "numeric" }
+        );
+        notifyPrintingPressGoogleSheets({
+          orderNumber: fullOrder.orderNumber,
+          orderDate,
+          customer: {
+            name: fullOrder.user.name,
+            phone: fullOrder.address.phone,
+          },
+          address: {
+            fullName: fullOrder.address.fullName,
+            line1: fullOrder.address.line1,
+            line2: fullOrder.address.line2,
+            city: fullOrder.address.city,
+            state: fullOrder.address.state,
+            postalCode: fullOrder.address.postalCode,
+            country: fullOrder.address.country,
+            phone: fullOrder.address.phone,
+          },
+          items: bookItems.map((i) => ({
+            productName: i.productName,
+            quantity: i.quantity,
+            unitPrice: Number(i.unitPrice),
+            total: Number(i.total),
+            coverImageUrl: i.product.primaryImage,
+          })),
+          orderTotal: Number(fullOrder.total),
+        }).catch(() => { /* already logged inside */ });
+      }
     }
 
     return fullOrder;

@@ -57,6 +57,12 @@ export async function createPaymentOrder(userId: string, orderId: string) {
   // 3. Create Razorpay order (amount in paise)
   const amountInPaise = Math.round(Number(order.total) * 100);
 
+  logger.info("[Payments] Creating Razorpay order", {
+    orderId: order.id,
+    total: order.total,
+    amountInPaise,
+  });
+
   let rzpOrder: { id: string; amount: number; currency: string; receipt: string };
   try {
     rzpOrder = await getRazorpay().orders.create({
@@ -66,7 +72,10 @@ export async function createPaymentOrder(userId: string, orderId: string) {
       notes: { internalOrderId: order.id },
     }) as { id: string; amount: number; currency: string; receipt: string };
   } catch (err) {
-    logger.error("[Payments] Razorpay orders.create failed", { error: String(err) });
+    const errDetail = err instanceof Error
+      ? err.message
+      : JSON.stringify(err, null, 2);
+    logger.error("[Payments] Razorpay orders.create failed", { error: errDetail });
     throw new AppError(
       "Payment gateway error — check Razorpay credentials or try again later",
       503
