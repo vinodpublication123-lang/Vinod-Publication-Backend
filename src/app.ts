@@ -40,6 +40,9 @@ import { auditRouter } from "./modules/audit/audit.routes";
 // ─────────────────────────────────────────────────────────────────────────────
 export const app = express();
 
+// ── 0. Trust Railway's proxy (required for express-rate-limit + X-Forwarded-For)
+app.set("trust proxy", 1);
+
 // ── 1. Security headers (Helmet) ──────────────────────────────────────────────
 app.use(
   helmet({
