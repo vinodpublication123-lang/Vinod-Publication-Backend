@@ -17,6 +17,10 @@ export class S3StorageProvider implements StorageProvider {
         accessKeyId: env.AWS_ACCESS_KEY_ID,
         secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
       },
+      // Explicitly set the regional endpoint to prevent PermanentRedirect errors.
+      // AWS SDK v3 does not auto-follow regional redirects like v2 did.
+      endpoint: `https://s3.${env.AWS_REGION}.amazonaws.com`,
+      forcePathStyle: false,
     });
     this.bucket = env.AWS_S3_BUCKET;
   }
