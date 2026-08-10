@@ -423,15 +423,18 @@ export async function deleteProduct(id: string): Promise<{ softDeleted: boolean 
   if (!existing) throw new AppError("Product not found", 404);
 
   // OrderItem uses onDelete: Restrict — hard-delete is blocked if orders exist.
-  // In that case, soft-delete (deactivate) so the product disappears from the
-  // storefront while order history stays intact.
   const orderedCount = await prisma.orderItem.count({ where: { productId: id } });
 
   if (orderedCount > 0) {
-    // First clear any active cart items so customers can't still buy it
+    // Clear any active cart items so customers can't still buy it
     await prisma.cartItem.deleteMany({ where: { productId: id } });
-    // Deactivate the product (hide from storefront)
-    await prisma.product.update({ where: { id }, data: { status: "DRAFT" } });
+
+    // Delete the Book record if linked — Book is NOT referenced by OrderItem
+    // so it can be hard-deleted even when the product cannot be
+    await prisma.book.deleteMany({ where: { productId: id } });
+
+    // Archive the product (hides it everywhere — store, books section, admin list)
+    await prisma.product.update({ where: { id }, data: { status: "ARCHIVED" } });
     return { softDeleted: true };
   }
 

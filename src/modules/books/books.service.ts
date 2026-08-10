@@ -8,15 +8,17 @@ export async function listBooks(query: BookQuery) {
   const { page, limit, search, sort, order } = query;
   const skip = (page - 1) * limit;
 
-  const where: Prisma.BookWhereInput = search
-    ? {
-        OR: [
-          { title: { contains: search, mode: "insensitive" } },
-          { author: { name: { contains: search, mode: "insensitive" } } },
-          { genre: { contains: search, mode: "insensitive" } },
-        ],
-      }
-    : {};
+  const where: Prisma.BookWhereInput = {
+    // Only show books whose linked product is ACTIVE (hide deleted/archived/draft)
+    product: { status: "ACTIVE" },
+    ...(search && {
+      OR: [
+        { title: { contains: search, mode: "insensitive" } },
+        { author: { name: { contains: search, mode: "insensitive" } } },
+        { genre: { contains: search, mode: "insensitive" } },
+      ],
+    }),
+  };
 
   const [total, items] = await Promise.all([
     prisma.book.count({ where }),
