@@ -61,14 +61,20 @@ export async function patchProduct(req: Request, res: Response, next: NextFuncti
 
 export async function removeProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    await deleteProduct(String(req.params.id));
+    const result = await deleteProduct(String(req.params.id));
     auditLog({
       actorId: req.user?.sub,
       action: "PRODUCT_DELETE",
       entityType: "Product",
       entityId: String(req.params.id),
+      metadata: { softDeleted: result.softDeleted },
     });
-    successResponse(res, { message: "Product deleted" });
+    successResponse(res, {
+      message: result.softDeleted
+        ? "Product deactivated (it has existing orders and cannot be permanently deleted)"
+        : "Product deleted",
+      softDeleted: result.softDeleted,
+    });
   } catch (err) {
     next(err);
   }

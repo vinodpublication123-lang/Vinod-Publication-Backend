@@ -415,11 +415,27 @@ export async function updateProduct(id: string, input: UpdateProductInput) {
 
 // ── Delete product ────────────────────────────────────────────────────────────
 
-export async function deleteProduct(id: string) {
+export async function deleteProduct(id: string): Promise<{ softDeleted: boolean }> {
   const existing = await prisma.product.findUnique({
     where: { id },
     select: { id: true },
   });
   if (!existing) throw new AppError("Product not found", 404);
+
+  // OrderItem uses onDelete: Restrict — hard-delete is blocked if orders exist.
+  // In that case, soft-delete (deactivate) so the product disappears from the
+  // storefront while order history stays intact.
+  const orderedCount = await prisma.orderItem.count({ where: { productId: id } });
+
+  if (orderedCount > 0) {
+    // First clear any active cart items so customers can't still buy it
+    await prisma.cartItem.deleteMany({ where: { productId: id } });
+    // Deactivate the product (hide from storefront)
+    await prisma.product.update({ where: { id }, data: { status: "DRAFT" } });
+    return { softDeleted: true };
+  }
+
+  // No orders — safe to fully delete (cascade removes sizes, variants, book, cart items)
   await prisma.product.delete({ where: { id } });
+  return { softDeleted: false };
 }
